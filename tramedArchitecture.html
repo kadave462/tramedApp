@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Pharmacie Tramed — Architecture Document</title>
+<style>
+  :root {
+    --bg:#0f1117; --card:#1a1f2e; --card2:#222840; --border:#2d3452;
+    --text:#e2e8f0; --muted:#8892a4;
+    --blue:#3b82f6; --purple:#8b5cf6; --amber:#f59e0b; --green:#10b981;
+    --orange:#f97316; --cyan:#06b6d4; --pink:#ec4899; --lime:#84cc16; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;min-height:100vh}
+  #sidebar{width:240px;height:100vh;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;overflow-y:auto;z-index:100}
+  #sidebar .logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+  #sidebar .logo h2{font-size:16px;font-weight:700;color:#fff}
+  #sidebar .logo p{font-size:11px;color:var(--muted);margin-top:2px}
+  #sidebar nav{padding:12px 8px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;margin-bottom:2px;text-decoration:none}
+  .nav-item:hover,.nav-item.active{background:var(--card2);color:#fff}
+  .phase-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .nav-divider{height:1px;background:var(--border);margin:8px 0}
+  #main{margin-left:240px;flex:1;padding:32px;max-width:1100px}
+  .section{display:none}
+  .section.active{display:block}
+  .phase-header{display:flex;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .phase-badge{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .phase-header h1{font-size:24px;font-weight:700}
+  .phase-header p{font-size:14px;color:var(--muted);margin-top:3px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h3{font-size:15px;font-weight:600;margin-bottom:14px}
+  .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;margin:2px}
+  .tag-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+  .tag-purple{background:rgba(139,92,246,.15);color:var(--purple)}
+  .tag-amber{background:rgba(245,158,11,.15);color:var(--amber)}
+  .tag-green{background:rgba(16,185,129,.15);color:var(--green)}
+  .tag-orange{background:rgba(249,115,22,.15);color:var(--orange)}
+  .tag-cyan{background:rgba(6,182,212,.15);color:var(--cyan)}
+  .tag-pink{background:rgba(236,72,153,.15);color:var(--pink)}
+  .tag-lime{background:rgba(132,204,22,.15);color:var(--lime)}
+  .tag-red{background:rgba(239,68,68,.15);color:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+  td{padding:10px 12px;border-bottom:1px solid rgba(45,52,82,.5);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .method{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace}
+  .get{background:rgba(16,185,129,.15);color:var(--green)}
+  .post{background:rgba(59,130,246,.15);color:var(--blue)}
+  .both{background:rgba(139,92,246,.15);color:var(--purple)}
+  pre,code{font-family:'Cascadia Code','Fira Code','Courier New',monospace;font-size:12.5px}
+  pre{background:#0a0d14;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:10px 0;line-height:1.6}
+  code{background:rgba(255,255,255,.07);padding:1px 5px;border-radius:3px}
+  .collapsible{cursor:pointer;user-select:none}
+  .collapsible::after{content:' ▼';font-size:10px;opacity:.5}
+  .collapsible.open::after{content:' ▲'}
+  .collapse-body.hidden{display:none}
+  .arch-box{border:2px solid;border-radius:10px;padding:12px 16px;text-align:center;font-size:13px;font-weight:600;min-width:120px}
+  .arch-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin:12px 0}
+  .arch-arrow{text-align:center;font-size:20px;color:var(--muted);margin:4px 0}
+  .flow-step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+  .flow-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+  .flow-content{flex:1}
+  .flow-content strong{font-size:14px}
+  .flow-content p{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .timeline{position:relative;padding-left:28px}
+  .timeline::before{content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--border)}
+  .tl-item{position:relative;margin-bottom:20px}
+  .tl-dot{position:absolute;left:-23px;width:14px;height:14px;border-radius:50%;top:3px;border:2px solid var(--bg)}
+  .tl-item h4{font-size:14px;font-weight:600}
+  .tl-item p{font-size:13px;color:var(--muted);margin-top:3px}
+  .field-row{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(45,52,82,.4);font-size:12.5px;align-items:center}
+  .field-row:last-child{border-bottom:none}
+  .field-name{font-family:monospace;color:#e2e8f0;min-width:160px}
+  .field-type{font-size:11px;color:var(--cyan);min-width:80px}
+  .field-note{color:var(--muted);font-size:12px}
+  .pk{font-size:9px;background:rgba(245,158,11,.2);color:var(--amber);padding:1px 5px;border-radius:3px;font-weight:700}
+  .fk{font-size:9px;background:rgba(139,92,246,.2);color:var(--purple);padding:1px 5px;border-radius:3px;font-weight:700}
+  .done{color:var(--green)} .warn{color:var(--amber)} .todo{color:var(--red)}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  #menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--text);font-size:18px}
+  @media(max-width:900px){#menu-btn{display:block}#sidebar{transform:translateX(-100%);transition:transform .2s}#sidebar.open{transform:translateX(0)}#main{margin-left:0}.card-grid,.card-grid-3{grid-template-columns:1fr}}
+
+  /* ── Goal Modals ─────────────────────────────────────────── */
+  .goal-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;padding:20px}
+  .goal-modal-overlay.open{display:flex}
+  .goal-modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:680px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+  .goal-modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .goal-modal-head h2{font-size:16px;font-weight:700;color:#fff}
+  .close-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:all .15s}
+  .close-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+  .gtabs{display:flex;gap:2px;padding:12px 16px 0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card)}
+  .gtab{padding:8px 16px;font-size:12px;font-weight:600;color:var(--muted);border-radius:8px 8px 0 0;cursor:pointer;border:1px solid transparent;border-bottom:none;margin-bottom:-1px;transition:all .15s}
+  .gtab:hover{color:var(--text)}
+  .gtab.active{color:#fff;background:var(--card2);border-color:var(--border);border-bottom-color:var(--card2)}
+  .gtab-body{display:none;padding:20px 24px;overflow-y:auto;flex:1}
+  .gtab-body.active{display:block}
+  .goal-section{margin-bottom:20px}
+  .goal-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(45,52,82,.5)}
+  .goal-item{display:flex;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.65;color:var(--muted)}
+  .gi-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:6px}
+  .goal-badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;margin-bottom:10px;letter-spacing:.04em}
+  .sc-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(45,52,82,.5);font-size:13px;color:var(--muted);line-height:1.6}
+  .sc-row:last-child{border-bottom:none}
+  .sc-check{color:var(--green);flex-shrink:0;font-size:15px;margin-top:1px;font-weight:700}
+  .tl-item.clickable{cursor:pointer;padding:6px 8px 6px 4px;margin-left:-4px;border-radius:8px;transition:background .15s}
+  .tl-item.clickable:hover{background:rgba(255,255,255,.045)}
+  .explore-hint{font-size:11px;color:var(--blue);margin-top:4px;opacity:0;transition:opacity .15s}
+  .tl-item.clickable:hover .explore-hint{opacity:1}
+</style>
+</head>
+<body>
+
+<button id="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+
+<aside id="sidebar">
+  <div class="logo">
+    <h2>&#127973; Pharmacie Tramed</h2>
+    <p>Architecture Document v1.0 &bull; KN 151 St, Kigali</p>
+  </div>
+  <nav>
+    <div style="padding:6px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:4px">SDLC Phases</div>
+    <a class="nav-item active" onclick="show('s1',this)"><span class="phase-num" style="background:rgba(59,130,246,.2);color:var(--blue)">1</span>Planning</a>
+    <a class="nav-item" onclick="show('s2',this)"><span class="phase-num" style="background:rgba(16,185,129,.2);color:var(--green)">2</span>Requirements</a>
+    <a class="nav-item" onclick="show('s3',this)"><span class="phase-num" style="background:rgba(139,92,246,.2);color:var(--purple)">3</span>System Design</a>
+    <a class="nav-item" onclick="show('s4',this)"><span class="phase-num" style="background:rgba(245,158,11,.2);color:var(--amber)">4</span>Implementation</a>
+    <a class="nav-item" onclick="show('s5',this)"><span class="phase-num" style="background:rgba(6,182,212,.2);color:var(--cyan)">5</span>Testing</a>
+    <a class="nav-item" onclick="show('s6',this)"><span class="phase-num" style="background:rgba(249,115,22,.2);color:var(--orange)">6</span>Deployment</a>
+    <a class="nav-item" onclick="show('s7',this)"><span class="phase-num" style="background:rgba(236,72,153,.2);color:var(--pink)">7</span>Maintenance</a>
+    <div class="nav-divider"></div>
+    <div style="padding:6px 12px;font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em">Quick Reference</div>
+    <a class="nav-item" onclick="show('s_api',this)"><span class="phase-num" style="background:rgba(132,204,22,.2);color:var(--lime)">&#9889;</span>API Reference</a>
+    <a class="nav-item" onclick="show('s_db',this)"><span class="phase-num" style="background:rgba(239,68,68,.2);color:var(--red)">&#128451;</span>Data Model</a>
+    <a class="nav-item" onclick="show('s_flows',this)"><span class="phase-num" style="background:rgba(236,72,153,.2);color:var(--pink)">&#128100;</span>User Flows</a>
+  </nav>
+</aside>
+
+<main id="main">
+
+<!-- ══════════════════════════════════════════════
+     PHASE 1 — PLANNING
+══════════════════════════════════════════════ -->
+<section id="s1" class="section active">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(59,130,246,.15)">&#128203;</div>
+    <div><h1>Phase 1 &mdash; Planning</h1><p>Project scope, objectives, stakeholders, and technology decisions</p></div>
+  </div>
+
+  <div class="card">
+    <h3>&#127919; Project Overview</h3>
+    <p style="font-size:14px;line-height:1.75;color:var(--muted)">
+      <strong style="color:var(--text)">Pharmacie Tramed</strong> (KN 151 St, Kigali, Rwanda) is undergoing digital transformation via a
+      <strong style="color:var(--blue)">4-month CS internship</strong> project. The system builds an
+      <strong style="color:var(--blue)">AI intelligence layer</strong> on top of the existing
+      <strong style="color:var(--text)">Ishyiga POS</strong> — rather than replacing Ishyiga (which handles billing),
+      this adds demand forecasting, customer retention workflows, a loyalty programme,
+      a public marketplace, and an AI chatbot assistant.
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <span class="tag tag-blue">Python 3.13</span><span class="tag tag-blue">Flask 3.0</span>
+      <span class="tag tag-purple">SQLite + SQLAlchemy</span><span class="tag tag-green">Tailwind CSS (CDN)</span>
+      <span class="tag tag-amber">Chart.js 4 (CDN)</span><span class="tag tag-pink">Claude Haiku AI</span>
+      <span class="tag tag-orange">WhatsApp wa.me</span><span class="tag tag-cyan">Twilio (notifier)</span>
+      <span class="tag tag-lime">APScheduler</span><span class="tag tag-green">numpy + pandas</span>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" style="margin-bottom:0">
+      <h3>&#127919; Project Goals</h3>
+      <div class="timeline">
+        <div class="tl-item clickable" onclick="openGoal('demand')"><div class="tl-dot" style="background:var(--blue)"></div><h4>Demand Intelligence</h4><p>Predict stock needs 30 days ahead using ML on historical Ishyiga sales data</p><div class="explore-hint">&#8594; click to explore</div></div>
+        <div class="tl-item clickable" onclick="openGoal('retention')"><div class="tl-dot" style="background:var(--green)"></div><h4>Customer Retention</h4><p>Auto-detect chronic medication patients and schedule WhatsApp refill reminders</p><div class="explore-hint">&#8594; click to explore</div></div>
+        <div class="tl-item clickable" onclick="openGoal('loyalty')"><div class="tl-dot" style="background:var(--orange)"></div><h4>Loyalty Programme</h4><p>Points, tiers (Bronze/Silver/Gold), Kinyarwanda WhatsApp notifications</p><div class="explore-hint">&#8594; click to explore</div></div>
+        <div class="tl-item clickable" onclick="openGoal('shop')"><div class="tl-dot" style="background:var(--cyan)"></div><h4>Customer-Facing Shop</h4><p>Public marketplace with live stock, WhatsApp ordering, and AI chat assistant</p><div class="explore-hint">&#8594; click to explore</div></div>
+        <div class="tl-item clickable" onclick="openGoal('alerts')"><div class="tl-dot" style="background:var(--pink)"></div><h4>Automated Alerts</h4><p>Weekly reorder summary sent automatically to pharmacist's WhatsApp every Monday</p><div class="explore-hint">&#8594; click to explore</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3>&#128101; Stakeholders</h3>
+      <div style="font-size:13px;line-height:1.8">
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong>Pharmacist / Owner</strong><p style="color:var(--muted)">Dashboard, forecasts, reorder messages, loyalty overview</p></div>
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong>Counter Staff</strong><p style="color:var(--muted)">Awards loyalty points at POS, sends WhatsApp reminders</p></div>
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)"><strong>Chronic Patients</strong><p style="color:var(--muted)">Receive refill reminders, use customer portal to check schedules and points</p></div>
+        <div style="padding:10px 0"><strong>Suppliers</strong><p style="color:var(--muted)">Receive WhatsApp reorder messages grouped by supplier</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>&#128279; Bridge with Ishyiga POS</h3>
+    <div class="card-grid">
+      <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:6px">ISHYIGA HANDLES</div>
+        <p style="font-size:13px;color:var(--muted)">Billing, receipts, VAT, cash register, anonymous sales records</p>
+      </div>
+      <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:6px">THIS SYSTEM HANDLES</div>
+        <p style="font-size:13px;color:var(--muted)">Forecasting, loyalty, retention, customer portal, AI chat, supplier alerts</p>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.7">
+      <strong style="color:var(--amber)">Manual bridge:</strong> After Ishyiga processes a sale, staff open the loyalty counter screen,
+      enter the sale amount from the Ishyiga receipt, and search the customer by phone number.
+      Future integration: Ishyiga CSV import for automatic data sync.
+    </p>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 2 — REQUIREMENTS
+══════════════════════════════════════════════ -->
+<section id="s2" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(16,185,129,.15)">&#128221;</div>
+    <div><h1>Phase 2 &mdash; Requirements Analysis</h1><p>Functional requirements, user stories, and constraints</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Functional Requirements &amp; Build Status</h3>
+    <table>
+      <thead><tr><th>Module</th><th>Requirement</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-blue">Dashboard</span></td><td>Real-time revenue cards (today/week/month), top products, low-stock alerts</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-purple">Inventory</span></td><td>Browse products, filter by category, search, live stock update via AJAX</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-purple">Inventory</span></td><td>Paginated sales history with payment method</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-amber">Forecasting</span></td><td>30-day demand forecast per product (linear regression + day-of-week seasonality)</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-amber">Forecasting</span></td><td>Reorder urgency table sorted critical &rarr; urgent &rarr; soon &rarr; ok</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-green">Retention</span></td><td>Detect repeat purchase patterns from sales history (&ge;2 purchases)</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-green">Retention</span></td><td>Create and manage WhatsApp refill schedules for chronic patients</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-green">Retention</span></td><td>Generate supplier reorder WhatsApp messages grouped by supplier</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-orange">Loyalty</span></td><td>Points, tiers (Bronze/Silver/Gold), multipliers based on lifetime spend</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-orange">Loyalty</span></td><td>POS counter screen — 3-step AJAX flow, no page reload</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-orange">Loyalty</span></td><td>Kinyarwanda WhatsApp notification automatically generated on points award</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-cyan">Shop</span></td><td>Public product marketplace with search, category filter, WhatsApp order button</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-pink">AI Chat</span></td><td>Floating chatbot with live inventory context (Claude Haiku), multi-turn</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-lime">Portal</span></td><td>Customer self-service: view points, tier, refill schedules, purchase history</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-lime">Portal</span></td><td>Product refill page with pre-filled WhatsApp order button</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-lime">Scheduler</span></td><td>Weekly automated reorder summary to pharmacist WhatsApp every Monday 08:00</td><td><span class="done">&#10003; Built</span></td></tr>
+        <tr><td><span class="tag tag-red">Future</span></td><td>Ishyiga CSV import for automatic sales data sync</td><td><span class="todo">&#9744; Not built</span></td></tr>
+        <tr><td><span class="tag tag-red">Future</span></td><td>WhatsApp Business API (replace wa.me deep links with auto-send)</td><td><span class="todo">&#9744; Not built</span></td></tr>
+        <tr><td><span class="tag tag-red">Future</span></td><td>POS / New Sale entry screen within this system</td><td><span class="todo">&#9744; Not built</span></td></tr>
+        <tr><td><span class="tag tag-red">Future</span></td><td>Staff authentication / login system</td><td><span class="todo">&#9744; Not built</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" style="margin-bottom:0">
+      <h3>Non-Functional Requirements</h3>
+      <div style="font-size:13px;line-height:1.8;color:var(--muted)">
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#127758; <strong style="color:var(--text)">Language:</strong> English UI + Kinyarwanda WhatsApp messages</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#128176; <strong style="color:var(--text)">Currency:</strong> Rwandan Franc (RWF), formatted with commas</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#128241; <strong style="color:var(--text)">Mobile:</strong> Customer-facing pages (shop, portal) are responsive</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#128274; <strong style="color:var(--text)">Security:</strong> Staff pages rely on localhost-only access in dev mode</div>
+        <div style="padding:6px 0">&#9889; <strong style="color:var(--text)">Performance:</strong> SQLite sufficient for single-location pharmacy (&lt;100 concurrent)</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3>Constraints &amp; Dependencies</h3>
+      <div style="font-size:13px;line-height:1.8;color:var(--muted)">
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#9888; <strong style="color:var(--amber)">No WhatsApp API</strong> &mdash; wa.me deep links, requires manual send by staff</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#9888; <strong style="color:var(--amber)">No Ishyiga integration</strong> &mdash; amounts entered manually at loyalty counter</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#9888; <strong style="color:var(--amber)">Claude API key</strong> required for chatbot; graceful fallback if missing</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border)">&#9888; <strong style="color:var(--amber)">Twilio credentials</strong> required for auto-WhatsApp; falls back to console log</div>
+        <div style="padding:6px 0">&#9888; <strong style="color:var(--amber)">APScheduler</strong> only runs while Flask process is running</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 3 — SYSTEM DESIGN
+══════════════════════════════════════════════ -->
+<section id="s3" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(139,92,246,.15)">&#127959;</div>
+    <div><h1>Phase 3 &mdash; System Design</h1><p>Architecture, module map, and key design decisions</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Architecture Diagram</h3>
+    <div style="background:#0a0d14;border-radius:10px;padding:24px;overflow-x:auto">
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--green);color:var(--green)">&#128241; WhatsApp<br/><small style="font-weight:400;color:var(--muted)">wa.me deep links</small></div>
+        <div class="arch-box" style="border-color:var(--pink);color:var(--pink)">&#129302; Claude AI<br/><small style="font-weight:400;color:var(--muted)">Haiku (chat.py)</small></div>
+        <div class="arch-box" style="border-color:var(--cyan);color:var(--cyan)">&#128225; Twilio<br/><small style="font-weight:400;color:var(--muted)">WhatsApp Business</small></div>
+      </div>
+      <div class="arch-arrow">&#8597; &#8597; &#8597;</div>
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--blue);color:var(--blue);min-width:580px;background:rgba(59,130,246,.04)">
+          <div style="font-size:15px;margin-bottom:12px">&#127821; Flask App &mdash; app.py &mdash; port 5000</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:12px">
+            <span style="background:rgba(59,130,246,.15);color:var(--blue);padding:4px 10px;border-radius:6px">Dashboard</span>
+            <span style="background:rgba(139,92,246,.15);color:var(--purple);padding:4px 10px;border-radius:6px">Inventory</span>
+            <span style="background:rgba(245,158,11,.15);color:var(--amber);padding:4px 10px;border-radius:6px">Forecasting</span>
+            <span style="background:rgba(16,185,129,.15);color:var(--green);padding:4px 10px;border-radius:6px">Retention</span>
+            <span style="background:rgba(249,115,22,.15);color:var(--orange);padding:4px 10px;border-radius:6px">Loyalty</span>
+            <span style="background:rgba(6,182,212,.15);color:var(--cyan);padding:4px 10px;border-radius:6px">Shop</span>
+            <span style="background:rgba(236,72,153,.15);color:var(--pink);padding:4px 10px;border-radius:6px">AI Chat</span>
+            <span style="background:rgba(132,204,22,.15);color:var(--lime);padding:4px 10px;border-radius:6px">Portal</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-arrow">&#8597;</div>
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--amber);color:var(--amber);font-size:12px">forecasting.py<br/><small style="color:var(--muted)">numpy + pandas</small></div>
+        <div class="arch-box" style="border-color:var(--green);color:var(--green);font-size:12px">retention.py<br/><small style="color:var(--muted)">patterns + msgs</small></div>
+        <div class="arch-box" style="border-color:var(--orange);color:var(--orange);font-size:12px">loyalty.py<br/><small style="color:var(--muted)">points engine</small></div>
+        <div class="arch-box" style="border-color:var(--pink);color:var(--pink);font-size:12px">chat.py<br/><small style="color:var(--muted)">Claude API</small></div>
+        <div class="arch-box" style="border-color:var(--cyan);color:var(--cyan);font-size:12px">notifier.py<br/><small style="color:var(--muted)">Twilio sender</small></div>
+      </div>
+      <div class="arch-arrow">&#8597;</div>
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--red);color:var(--red);min-width:300px">&#128451; SQLite &mdash; tramed.db<br/><small style="font-weight:400;color:var(--muted)">8 tables &bull; Flask-SQLAlchemy ORM</small></div>
+        <div class="arch-box" style="border-color:var(--lime);color:var(--lime)">&#9200; APScheduler<br/><small style="font-weight:400;color:var(--muted)">Mon 08:00 reorder alert</small></div>
+      </div>
+      <div class="arch-arrow" style="margin-top:8px">&#8593;</div>
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--muted);color:var(--muted)">Ishyiga POS (manual bridge)<br/><small style="font-weight:400">Staff type receipt amount at loyalty counter</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Module Map</h3>
+    <table>
+      <thead><tr><th>Module</th><th>File</th><th>Responsibility</th><th>Key Dependency</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-blue">Core</span></td><td><code>app.py</code></td><td>All Flask routes (24 total), scheduler init, DB init on first run</td><td>All modules</td></tr>
+        <tr><td><span class="tag tag-blue">Models</span></td><td><code>database.py</code></td><td>8 SQLAlchemy models + property methods</td><td>Flask-SQLAlchemy</td></tr>
+        <tr><td><span class="tag tag-amber">Forecasting</span></td><td><code>forecasting.py</code></td><td>Linear regression + day-of-week seasonality demand forecast</td><td>numpy, pandas</td></tr>
+        <tr><td><span class="tag tag-green">Retention</span></td><td><code>retention.py</code></td><td>Purchase pattern detection, reminder scheduling, WhatsApp message generation</td><td>forecasting.py</td></tr>
+        <tr><td><span class="tag tag-orange">Loyalty</span></td><td><code>loyalty.py</code></td><td>Points engine, tier calculation, Kinyarwanda WhatsApp message builder</td><td>database.py</td></tr>
+        <tr><td><span class="tag tag-pink">Chat</span></td><td><code>chat.py</code></td><td>Claude Haiku API with live inventory injected as system prompt</td><td>anthropic SDK</td></tr>
+        <tr><td><span class="tag tag-cyan">Notifier</span></td><td><code>notifier.py</code></td><td>Twilio WhatsApp sender with graceful fallback to console log</td><td>twilio SDK</td></tr>
+        <tr><td><span class="tag tag-lime">Seed</span></td><td><code>seed_data.py</code></td><td>Generate 4 suppliers, 30 products, 8 customers, 90 days of sales (runs once on first boot)</td><td>database.py</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Key Design Decisions</h3>
+    <div class="card-grid">
+      <div style="background:var(--card2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:6px">WHY SQLITE?</div>
+        <p style="font-size:13px;color:var(--muted)">Single-location pharmacy. Zero-config, embedded, easy to back up (one file). Sufficient for &lt;100 concurrent users.</p>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:6px">WHY WA.ME NOT WHATSAPP API?</div>
+        <p style="font-size:13px;color:var(--muted)">WhatsApp Business API requires approval and monthly cost. wa.me deep links work instantly, zero cost, zero approval required.</p>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--orange);font-weight:700;margin-bottom:6px">WHY LIFETIME POINTS FOR TIER?</div>
+        <p style="font-size:13px;color:var(--muted)">Separating <code>points_balance</code> (spendable) from <code>lifetime_points</code> (tier gate) means customers never lose their tier when redeeming.</p>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:var(--pink);font-weight:700;margin-bottom:6px">WHY HAIKU NOT SONNET?</div>
+        <p style="font-size:13px;color:var(--muted)">Customer service queries are simple (stock checks, pricing). Haiku is 10x cheaper and fast enough for pharmacy assistant use.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 4 — IMPLEMENTATION
+══════════════════════════════════════════════ -->
+<section id="s4" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(245,158,11,.15)">&#9881;</div>
+    <div><h1>Phase 4 &mdash; Implementation</h1><p>File structure, module internals, and algorithm details</p></div>
+  </div>
+
+  <div class="card">
+    <h3>File Structure</h3>
+    <pre>
+real app/
+&#9500;&#9472;&#9472; tramed/
+&#9474;   &#9500;&#9472;&#9472; app.py                &#8592; All 24 Flask routes + APScheduler init
+&#9474;   &#9500;&#9472;&#9472; database.py           &#8592; 8 SQLAlchemy models (all tables)
+&#9474;   &#9500;&#9472;&#9472; forecasting.py        &#8592; ML demand forecast (numpy + pandas)
+&#9474;   &#9500;&#9472;&#9472; retention.py          &#8592; Pattern detection + WhatsApp messages
+&#9474;   &#9500;&#9472;&#9472; loyalty.py            &#8592; Points engine + Kinyarwanda notifications
+&#9474;   &#9500;&#9472;&#9472; chat.py               &#8592; Claude Haiku AI with live inventory context
+&#9474;   &#9500;&#9472;&#9472; notifier.py           &#8592; Twilio WhatsApp sender (graceful fallback)
+&#9474;   &#9500;&#9472;&#9472; seed_data.py          &#8592; Test data generator (runs once on first boot)
+&#9474;   &#9500;&#9472;&#9472; .env                  &#8592; API keys (NOT committed to git)
+&#9474;   &#9500;&#9472;&#9472; instance/tramed.db    &#8592; SQLite database file
+&#9474;   &#9492;&#9472;&#9472; templates/
+&#9474;       &#9500;&#9472;&#9472; base.html              &#8592; Staff layout (sidebar nav)
+&#9474;       &#9500;&#9472;&#9472; dashboard.html         &#8592; Revenue + charts + low stock
+&#9474;       &#9500;&#9472;&#9472; inventory.html         &#8592; Product table + inline stock editor
+&#9474;       &#9500;&#9472;&#9472; sales.html             &#8592; Paginated transaction history
+&#9474;       &#9500;&#9472;&#9472; forecast.html          &#8592; Reorder urgency table + product charts
+&#9474;       &#9500;&#9472;&#9472; customers.html         &#8592; Customer list + add-customer form
+&#9474;       &#9500;&#9472;&#9472; customer_detail.html   &#8592; Purchase patterns + medication schedules
+&#9474;       &#9500;&#9472;&#9472; messages.html          &#8592; WhatsApp reminders + supplier messages
+&#9474;       &#9500;&#9472;&#9472; loyalty.html           &#8592; Members table + tier stats
+&#9474;       &#9500;&#9472;&#9472; loyalty_counter.html   &#8592; POS counter (3-step AJAX, no reload)
+&#9474;       &#9500;&#9472;&#9472; shop.html              &#8592; Public marketplace + floating AI chat
+&#9474;       &#9500;&#9472;&#9472; portal_lookup.html     &#8592; Customer phone lookup
+&#9474;       &#9500;&#9472;&#9472; portal.html            &#8592; Customer dashboard (points + schedules)
+&#9474;       &#9492;&#9472;&#9472; portal_shop.html       &#8592; Product refill page with WhatsApp button
+&#9492;&#9472;&#9472; notes/
+    &#9500;&#9472;&#9472; tramedArchitecture.html  &#8592; This file
+    &#9500;&#9472;&#9472; notes.html
+    &#9500;&#9472;&#9472; customer-retention-module.html
+    &#9492;&#9472;&#9472; customer-loyalty-module.html</pre>
+  </div>
+
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#128202; Forecasting Algorithm (forecasting.py)</h3>
+    <div class="collapse-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">5-step ML pipeline, runs per product on each forecast page load:</p>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">1</div><div class="flow-content"><strong>Aggregate daily sales</strong><p>Query <code>sale_items JOIN sales</code> for last 90 days, group by date, fill zero-sales days &rarr; DataFrame with <code>date, qty, day_index, dow</code></p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">2</div><div class="flow-content"><strong>Day-of-week multipliers</strong><p>For each weekday 0&ndash;6: <code>multiplier = mean(that_day_qty) / overall_mean</code>. Captures weekly seasonality (e.g. busier Mondays).</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div><div class="flow-content"><strong>Deseasonalise + linear trend</strong><p>Last 30 days: <code>y_deseas = y / dow_multiplier[dow]</code> &rarr; <code>numpy.polyfit(x, y_deseas, 1)</code> &rarr; slope + intercept</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">4</div><div class="flow-content"><strong>Project forward 30 days</strong><p>For each future day: <code>predicted = max(0, trend(future_index) &times; dow_multiplier[dow])</code></p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">5</div><div class="flow-content"><strong>Reorder recommendation</strong><p><code>days_remaining = stock / avg_daily</code>. Thresholds: critical &le;3d, urgent &le;10d, soon &le;14d. Reorder qty = <code>forecast_14d + 7&times;avg_daily &minus; stock</code></p></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#127881; Loyalty Points Engine (loyalty.py)</h3>
+    <div class="collapse-body">
+      <div class="card-grid-3" style="margin-bottom:16px">
+        <div style="background:rgba(180,120,60,.08);border:1px solid rgba(180,120,60,.3);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px">&#129353;</div><div style="font-weight:700;color:#cd7f32">Bronze</div><div style="font-size:12px;color:var(--muted)">0&ndash;499 pts &bull; &times;1.0</div></div>
+        <div style="background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.25);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px">&#129352;</div><div style="font-weight:700;color:#94a3b8">Silver</div><div style="font-size:12px;color:var(--muted)">500&ndash;1999 pts &bull; &times;1.5</div></div>
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px">&#129351;</div><div style="font-weight:700;color:var(--amber)">Gold</div><div style="font-size:12px;color:var(--muted)">2000+ pts &bull; &times;2.0</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Minimum purchase to earn points</td><td><code>1,000 RWF</code></td></tr>
+          <tr><td>Base earn rate</td><td><code>1 pt per 100 RWF spent</code></td></tr>
+          <tr><td>Redemption rate</td><td><code>100 pts = 500 RWF discount</code></td></tr>
+          <tr><td>Max redemption per sale</td><td><code>50% of sale value</code></td></tr>
+          <tr><td>Tier basis</td><td><code>lifetime_points</code> &mdash; never decreases on redemption</td></tr>
+          <tr><td>Notification language</td><td>Kinyarwanda via WhatsApp wa.me link</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#128451; Loyalty Counter &mdash; 3-Step AJAX Flow</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">1</div><div class="flow-content"><strong>Phone lookup &rarr; GET /api/loyalty/lookup?phone=&hellip;</strong><p>Returns customer name, tier, current balance, and RWF value. Customer card appears instantly &mdash; no page reload.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">2</div><div class="flow-content"><strong>Enter sale amount from Ishyiga receipt</strong><p>JavaScript calculates expected points live using client-side TIERS multipliers. Staff see &quot;You will earn X pts&quot; before confirming.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">3</div><div class="flow-content"><strong>Award &rarr; POST /api/loyalty/award</strong><p>Server awards points, DB committed. Returns Kinyarwanda WhatsApp URL. Staff taps button to open WhatsApp and send notification to customer.</p></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#129302; AI Chat (chat.py)</h3>
+    <div class="collapse-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Every <code>POST /api/chat</code> call rebuilds the system prompt with live inventory data:</p>
+      <pre>
+System prompt includes:
+  - Pharmacy name + address
+  - Full live inventory: name, category, price, stock status per product
+  - Guidelines: multilingual (English/French/Kinyarwanda), no diagnosis,
+    suggest alternatives if out of stock, direct orders to WhatsApp
+
+Model: claude-haiku-4-5-20251001
+Max tokens: 512
+Pattern: multi-turn (messages array passed from frontend JS)</pre>
+      <p style="font-size:13px;color:var(--amber);margin-top:8px">&#9888; Falls back gracefully to <code>{error: "Chat unavailable"}</code> if ANTHROPIC_API_KEY is not set. Frontend shows WhatsApp fallback message.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 5 — TESTING
+══════════════════════════════════════════════ -->
+<section id="s5" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(6,182,212,.15)">&#129514;</div>
+    <div><h1>Phase 5 &mdash; Testing</h1><p>Manual test scenarios, edge cases, and known bugs fixed</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Manual Test Scenarios</h3>
+    <table>
+      <thead><tr><th>Feature</th><th>Test Action</th><th>Expected Result</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td>Open <code>http://localhost:5000/</code></td><td>Revenue cards, top-5 products, low-stock warnings visible</td></tr>
+        <tr><td>Revenue chart</td><td>Switch selector from 30 days to 7 days</td><td>Chart updates via <code>GET /api/revenue-chart?days=7</code> without reload</td></tr>
+        <tr><td>Inventory search</td><td>Type &quot;amox&quot; in inventory search</td><td>Only Amoxicillin 500mg card remains</td></tr>
+        <tr><td>Stock update</td><td>Click stock number &rarr; change value &rarr; save</td><td><code>POST /api/stock-update</code> updates DB, number changes in-place</td></tr>
+        <tr><td>Forecast</td><td>Open <code>/forecast</code></td><td>Critical items at top (Ciprofloxacin, Vitamin C have low seed stock)</td></tr>
+        <tr><td>Customer portal</td><td>Go to <code>/portal</code>, enter <code>0788 123 456</code></td><td>Redirects to Uwimana Jean's portal: loyalty card + overdue schedules</td></tr>
+        <tr><td>Refill flow</td><td>Portal &rarr; Jean &rarr; click &quot;Refill now&quot;</td><td>Navigates to <code>/portal/1/shop/12</code> (Metformin) with WhatsApp order button</td></tr>
+        <tr><td>Loyalty lookup</td><td><code>/loyalty/counter</code> &rarr; search <code>0788 123 456</code></td><td>Jean's name, Bronze tier, balance displayed instantly</td></tr>
+        <tr><td>Points award</td><td>Enter 5000 RWF &rarr; click Award</td><td>50 pts awarded, Kinyarwanda WhatsApp button appears</td></tr>
+        <tr><td>Retention reminders</td><td>Open <code>/messages</code></td><td>Jean and Bizimana Emmanuel show as OVERDUE in reminder list</td></tr>
+        <tr><td>Shop search</td><td><code>/shop</code> &rarr; type &quot;para&quot; in search</td><td>Cards instantly filter to Paracetamol only</td></tr>
+        <tr><td>Chat (no key)</td><td>Click chat bubble &rarr; send any message</td><td>Shows fallback message, does not crash</td></tr>
+        <tr><td>Chat (with key)</td><td>Set <code>ANTHROPIC_API_KEY</code> &rarr; ask &quot;do you have amoxicillin?&quot;</td><td>AI replies with stock status, price, and in-stock confirmation</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Bugs Fixed During Development</h3>
+    <table>
+      <thead><tr><th>Bug</th><th>Root Cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><code>sm.items</code> resolves to <code>dict.items()</code></td><td>Jinja2 dot notation tries built-in attributes first; key named <code>"items"</code> shadows Python built-in</td><td>Renamed dict key to <code>"lines"</code> in retention.py and messages.html</td></tr>
+        <tr><td><code>multiple values for keyword argument 'TIERS'</code></td><td><code>loyalty_summary()</code> returns TIERS in dict; route also passed <code>TIERS=TIERS</code> explicitly</td><td>Removed duplicate explicit kwarg from render_template call</td></tr>
+        <tr><td><code>expected 'end of statement block'</code></td><td>Draft <code>{% from 'macros.html' import &hellip; ignore missing %}</code> left in loyalty.html</td><td>Removed the orphaned draft line</td></tr>
+        <tr><td>Old process serving stale schema</td><td>Background Flask process still running after new models added; old DB had no <code>customers</code> table</td><td><code>Get-Process python | Stop-Process -Force</code> &rarr; delete .db &rarr; restart</td></tr>
+        <tr><td>APScheduler fires twice in debug mode</td><td>Flask debug reloader spawns two processes; scheduler runs in both</td><td>Set <code>use_reloader=False</code> in <code>app.run()</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>DB Reset Procedure (after schema changes)</h3>
+    <pre>
+# 1. Stop Flask
+Get-Process python | Stop-Process -Force
+
+# 2. Delete the database
+Remove-Item "tramed\instance\tramed.db"
+
+# 3. Restart — auto-creates schema + seeds data on first boot
+py tramed\app.py</pre>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 6 — DEPLOYMENT
+══════════════════════════════════════════════ -->
+<section id="s6" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(249,115,22,.15)">&#128640;</div>
+    <div><h1>Phase 6 &mdash; Deployment</h1><p>Environment setup, configuration, and run instructions</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Prerequisites</h3>
+    <pre>
+# Python 3.13+
+py --version
+
+# Install all dependencies (one command)
+pip install flask flask-sqlalchemy pandas numpy anthropic python-dotenv flask-apscheduler twilio</pre>
+  </div>
+
+  <div class="card">
+    <h3>Environment Variables &mdash; create <code>tramed/.env</code></h3>
+    <pre>
+# AI Chatbot (required for /shop chat widget)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Twilio (required for automated Monday WhatsApp alert)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+
+# Pharmacist's number (receives weekly reorder summary)
+PHARMACIST_WHATSAPP=whatsapp:+250788301960</pre>
+    <p style="font-size:12px;color:var(--amber);margin-top:10px">&#9888; Without these keys the app still starts and runs fully &mdash; chatbot shows a fallback message, scheduler prints to console instead of sending.</p>
+  </div>
+
+  <div class="card">
+    <h3>Starting the Server</h3>
+    <pre>
+cd "real app\tramed"
+py app.py
+
+# On first run (no DB file):
+#   Creates instance/tramed.db
+#   Runs seed_data.py (30 products, 8 customers, 90 days of sales, loyalty accounts)
+#   Starts APScheduler (weekly reorder Mon 08:00)
+#   Flask running on http://127.0.0.1:5000</pre>
+  </div>
+
+  <div class="card">
+    <h3>All URLs &amp; Who Uses Them</h3>
+    <table>
+      <thead><tr><th>URL</th><th>Audience</th><th>Page</th></tr></thead>
+      <tbody>
+        <tr><td><code>localhost:5000/</code></td><td>Staff</td><td>Dashboard &mdash; revenue, charts, low-stock</td></tr>
+        <tr><td><code>localhost:5000/inventory</code></td><td>Staff</td><td>Product catalogue + inline stock editor</td></tr>
+        <tr><td><code>localhost:5000/sales</code></td><td>Staff</td><td>Paginated transaction history</td></tr>
+        <tr><td><code>localhost:5000/forecast</code></td><td>Pharmacist</td><td>Demand forecast + reorder table + supplier messages</td></tr>
+        <tr><td><code>localhost:5000/customers</code></td><td>Staff</td><td>Customer list + medication schedules</td></tr>
+        <tr><td><code>localhost:5000/messages</code></td><td>Staff</td><td>WhatsApp reminder + supplier reorder messages</td></tr>
+        <tr><td><code>localhost:5000/loyalty</code></td><td>Staff</td><td>Loyalty member table + tier stats</td></tr>
+        <tr><td><code>localhost:5000/loyalty/counter</code></td><td>Counter staff</td><td>POS point-award counter</td></tr>
+        <tr><td><code>localhost:5000/shop</code></td><td>&#127760; <strong>Public</strong></td><td>Customer marketplace + AI chat widget</td></tr>
+        <tr><td><code>localhost:5000/portal</code></td><td>&#127760; <strong>Public</strong></td><td>Customer phone lookup &rarr; personal dashboard</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>&#9888; Phone Numbers to Update Before Go-Live</h3>
+    <table>
+      <thead><tr><th>File</th><th>Variable</th><th>Current (placeholder)</th></tr></thead>
+      <tbody>
+        <tr><td><code>chat.py</code> line 5</td><td><code>PHARMACY_WHATSAPP</code></td><td><code>"250788000000"</code> &larr; update</td></tr>
+        <tr><td><code>app.py</code> line 273</td><td><code>PHARMACY_WHATSAPP</code> (inline)</td><td><code>"250788301960"</code> &larr; verify</td></tr>
+        <tr><td><code>retention.py</code> line 18</td><td><code>PHARMACY_PHONE</code></td><td><code>"0788 301 960"</code> &larr; verify</td></tr>
+        <tr><td><code>loyalty.py</code> line 35</td><td><code>PHARMACY_PHONE</code></td><td><code>"0788 301 960"</code> &larr; verify</td></tr>
+        <tr><td><code>portal_lookup.html</code></td><td>Help text phone number</td><td><code>+250 788 000 000</code> &larr; update</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     PHASE 7 — MAINTENANCE
+══════════════════════════════════════════════ -->
+<section id="s7" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(236,72,153,.15)">&#128295;</div>
+    <div><h1>Phase 7 &mdash; Maintenance</h1><p>Scheduled tasks, known issues, and future roadmap</p></div>
+  </div>
+
+  <div class="card">
+    <h3>&#9200; Automated Tasks (APScheduler)</h3>
+    <table>
+      <thead><tr><th>Task ID</th><th>Schedule</th><th>What it does</th><th>Requires</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>weekly_reorder_summary</code></td>
+          <td>Every Monday 08:00</td>
+          <td>Calls <code>get_pharmacist_reorder_summary()</code> &rarr; builds consolidated reorder message for all critical/urgent/soon items &rarr; sends via <code>notifier.send_whatsapp()</code> to <code>PHARMACIST_WHATSAPP</code></td>
+          <td><code>TWILIO_*</code> env vars + Flask running</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">&#9888; Scheduler only fires while <code>py app.py</code> is running. If server is offline Monday morning, message is missed. Consider VPS deployment for production reliability.</p>
+  </div>
+
+  <div class="card">
+    <h3>notifier.py &mdash; Fallback Behaviour</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">When Twilio credentials are missing or placeholder values detected:</p>
+    <pre>
+[notifier] Twilio not configured &mdash; printing message instead:
+============================================================
+[WhatsApp &rarr; 250788301960]
+*Pharmacie Tramed &mdash; Reorder Summary*
+Week of 05 Jun 2026
+
+&#128308; CRITICAL &mdash; Ciprofloxacin 500mg: order 47 units (1.2d of stock left)
+&#128309; URGENT   &mdash; Vitamin C 500mg: order 31 units (4.8d of stock left)
+...
+============================================================</pre>
+    <p style="font-size:12px;color:var(--green);margin-top:6px">&#10003; App continues normally. This is intentional for development use.</p>
+  </div>
+
+  <div class="card">
+    <h3>Future Roadmap</h3>
+    <table>
+      <thead><tr><th>Feature</th><th>Priority</th><th>What it needs</th></tr></thead>
+      <tbody>
+        <tr><td>POS / New Sale screen</td><td><span class="tag tag-red">High</span></td><td>In-app form to record sales, auto-award loyalty points without separate counter step</td></tr>
+        <tr><td>Ishyiga CSV Import</td><td><span class="tag tag-red">High</span></td><td>Parse Ishyiga export, auto-sync transaction history into <code>sales</code> and <code>sale_items</code></td></tr>
+        <tr><td>WhatsApp Business API</td><td><span class="tag tag-amber">Medium</span></td><td>Replace wa.me deep links; auto-send reminders without staff manual action</td></tr>
+        <tr><td>Staff Authentication</td><td><span class="tag tag-amber">Medium</span></td><td>Flask-Login or JWT to protect staff pages if deployed publicly</td></tr>
+        <tr><td>Customer Segmentation ML</td><td><span class="tag tag-amber">Medium</span></td><td>Cluster customers by RFM (Recency, Frequency, Monetary) using scikit-learn</td></tr>
+        <tr><td>Stock Anomaly Detection</td><td><span class="tag tag-amber">Medium</span></td><td>Flag unusual stock spikes/drops (theft, spoilage, data error)</td></tr>
+        <tr><td>Product Images</td><td><span class="tag tag-lime">Low</span></td><td>Image upload + serve for shop page product cards</td></tr>
+        <tr><td>Multi-location Support</td><td><span class="tag tag-lime">Low</span></td><td>Schema changes + tenant isolation if second location opens</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>&#9888; Known Issues &amp; Workarounds</h3>
+    <table>
+      <thead><tr><th>Location</th><th>Issue</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>chat.py:5</code></td><td><code>PHARMACY_WHATSAPP = "250788000000"</code> is a placeholder</td><td><span class="warn">&#9888; Update before go-live</span></td></tr>
+        <tr><td><code>retention.py:262</code></td><td>Forecast URL hardcoded as <code>http://127.0.0.1:5000/forecast</code></td><td><span class="warn">&#9888; Update for production host</span></td></tr>
+        <tr><td><code>app.py</code> all staff routes</td><td>No authentication &mdash; relies on localhost-only access</td><td><span class="todo">&#9744; Add before public deploy</span></td></tr>
+        <tr><td><code>app.py use_reloader=False</code></td><td>Debug reloader disabled to prevent APScheduler running twice</td><td><span class="done">&#10003; Intentional workaround</span></td></tr>
+        <tr><td><code>portal_lookup.html</code></td><td>Help text shows placeholder phone number</td><td><span class="warn">&#9888; Update to real number</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     API REFERENCE
+══════════════════════════════════════════════ -->
+<section id="s_api" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(132,204,22,.15)">&#9889;</div>
+    <div><h1>API Reference</h1><p>All 24 routes &mdash; pages, JSON APIs, and POST forms</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Staff Pages (GET)</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th><th>Module</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td><code>/</code></td><td>Dashboard: revenue cards, top-5 products, low-stock alerts</td><td><span class="tag tag-blue">Core</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/inventory</code></td><td>Product catalogue &bull; <code>?category=&amp;search=</code></td><td><span class="tag tag-purple">Inventory</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/sales</code></td><td>Paginated sales history (25/page) &bull; <code>?page=</code></td><td><span class="tag tag-purple">Inventory</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/forecast</code></td><td>Demand forecast + reorder urgency table + supplier messages</td><td><span class="tag tag-amber">Forecast</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/customers</code></td><td>Customer list with due-reminder badges &bull; <code>?q=</code> search</td><td><span class="tag tag-green">Retention</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/customers/&lt;id&gt;</code></td><td>Customer detail: purchase patterns, schedules, history</td><td><span class="tag tag-green">Retention</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/messages</code></td><td>Ready-to-send WhatsApp reminders + supplier reorder messages</td><td><span class="tag tag-green">Retention</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/loyalty</code></td><td>Member table, tier breakdown, recent transactions</td><td><span class="tag tag-orange">Loyalty</span></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/loyalty/counter</code></td><td>POS award-points counter (3-step AJAX)</td><td><span class="tag tag-orange">Loyalty</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>POST Form Routes</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method post">POST</span></td><td><code>/customers/new</code></td><td>name, phone, notes</td><td>Create customer &rarr; redirect to /customers</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/customers/&lt;id&gt;/schedule/add</code></td><td>product_id, interval_days, last_purchase_date, notes</td><td>Add medication schedule</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/customers/&lt;id&gt;/schedule/&lt;sid&gt;/toggle</code></td><td>&mdash;</td><td>Toggle schedule active/inactive</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/customers/&lt;id&gt;/schedule/&lt;sid&gt;/renew</code></td><td>&mdash;</td><td>Mark renewed: today = last purchase, advance next reminder</td></tr>
+        <tr><td><span class="method both">GET+POST</span></td><td><code>/portal</code></td><td>phone (POST only)</td><td>GET: phone form &bull; POST: lookup &rarr; redirect to /portal/&lt;id&gt;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>JSON API Endpoints</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Body / Params</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td><code>/api/revenue-chart</code></td><td><code>?days=30</code></td><td><code>&#123;labels[], values[]&#125;</code></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/api/category-chart</code></td><td>&mdash;</td><td><code>&#123;labels[], values[]&#125;</code></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/api/product-forecast/&lt;id&gt;</code></td><td>&mdash;</td><td>Full forecast dict (avg_daily, trend, 7/14/30d totals, daily series)</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/stock-update</code></td><td><code>&#123;id, quantity&#125;</code></td><td><code>&#123;ok, new_quantity&#125;</code></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/api/loyalty/lookup</code></td><td><code>?phone=</code></td><td>Customer + account info (tier, balance, rwf_value, pts_to_next)</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/loyalty/award</code></td><td><code>&#123;customer_id, amount_rwf&#125;</code></td><td>Points earned, new balance, tier, Kinyarwanda WhatsApp URL</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/loyalty/redeem</code></td><td><code>&#123;customer_id, points, sale_amount&#125;</code></td><td><code>&#123;discount_rwf, points_used, new_balance&#125;</code></td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/chat</code></td><td><code>&#123;messages: [&#123;role,content&#125;]&#125;</code></td><td><code>&#123;reply&#125;</code> or <code>&#123;error&#125;</code> on 503</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Public Routes</h3>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td><code>/shop</code></td><td>Public product marketplace + AI chat widget &bull; <code>?category=&amp;q=</code></td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/portal</code></td><td>Customer phone lookup form</td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/portal/&lt;id&gt;</code></td><td>Customer dashboard: loyalty points, schedules, history</td></tr>
+        <tr><td><span class="method get">GET</span></td><td><code>/portal/&lt;id&gt;/shop/&lt;product_id&gt;</code></td><td>Product refill page with WhatsApp order button</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/chat</code></td><td>AI chatbot called from public shop page</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--amber);margin-top:10px">&#9888; Staff routes have no authentication. Add Flask-Login before any public-facing deployment.</p>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     DATA MODEL
+══════════════════════════════════════════════ -->
+<section id="s_db" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(239,68,68,.15)">&#128451;</div>
+    <div><h1>Data Model</h1><p>All 8 database tables with fields, types, and relationships</p></div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--purple)">suppliers</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">name</span><span class="field-type">String(120)</span><span class="field-note">required</span></div>
+      <div class="field-row"><span class="field-name">phone</span><span class="field-type">String(20)</span></div>
+      <div class="field-row"><span class="field-name">email</span><span class="field-type">String(120)</span></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">&#8594; products (one-to-many)</div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--purple)">products</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">name</span><span class="field-type">String(200)</span><span class="field-note">required</span></div>
+      <div class="field-row"><span class="field-name">category</span><span class="field-type">String(80)</span><span class="field-note">Antibiotic, Analgesic&hellip;</span></div>
+      <div class="field-row"><span class="field-name">unit_price</span><span class="field-type">Float</span><span class="field-note">RWF sell price</span></div>
+      <div class="field-row"><span class="field-name">cost_price</span><span class="field-type">Float</span><span class="field-note">RWF cost (margin calc)</span></div>
+      <div class="field-row"><span class="field-name">stock_quantity</span><span class="field-type">Integer</span></div>
+      <div class="field-row"><span class="field-name">min_stock_level</span><span class="field-type">Integer</span><span class="field-note">reorder threshold</span></div>
+      <div class="field-row"><span class="field-name">supplier_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;suppliers</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--blue)">customers</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">name</span><span class="field-type">String(120)</span><span class="field-note">required</span></div>
+      <div class="field-row"><span class="field-name">phone</span><span class="field-type">String(20)</span><span class="field-note">required &bull; portal lookup key</span></div>
+      <div class="field-row"><span class="field-name">notes</span><span class="field-type">String(300)</span><span class="field-note">medical condition/notes</span></div>
+      <div class="field-row"><span class="field-name">created_at</span><span class="field-type">DateTime</span></div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">&#8594; sales, schedules, loyalty (relationships)</div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--blue)">sales</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">created_at</span><span class="field-type">DateTime</span></div>
+      <div class="field-row"><span class="field-name">total_amount</span><span class="field-type">Float</span><span class="field-note">RWF</span></div>
+      <div class="field-row"><span class="field-name">payment_method</span><span class="field-type">String(30)</span><span class="field-note">cash / momo / card</span></div>
+      <div class="field-row"><span class="field-name">customer_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;customers</span><span class="field-note" style="margin-left:4px">nullable = anonymous</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--blue)">sale_items</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">sale_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;sales</span></div>
+      <div class="field-row"><span class="field-name">product_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;products</span></div>
+      <div class="field-row"><span class="field-name">quantity</span><span class="field-type">Integer</span></div>
+      <div class="field-row"><span class="field-name">unit_price</span><span class="field-type">Float</span><span class="field-note">price at time of sale</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--green)">medication_schedules</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">customer_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;customers</span></div>
+      <div class="field-row"><span class="field-name">product_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;products</span></div>
+      <div class="field-row"><span class="field-name">interval_days</span><span class="field-type">Integer</span><span class="field-note">e.g. 30</span></div>
+      <div class="field-row"><span class="field-name">last_purchase_date</span><span class="field-type">Date</span></div>
+      <div class="field-row"><span class="field-name">next_reminder_date</span><span class="field-type">Date</span><span class="field-note">= last + interval &minus; 3 days</span></div>
+      <div class="field-row"><span class="field-name">active</span><span class="field-type">Boolean</span></div>
+      <div class="field-row"><span class="field-name">notes</span><span class="field-type">String(200)</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--orange)">loyalty_accounts</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">customer_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;customers</span><span class="field-note" style="margin-left:4px">unique</span></div>
+      <div class="field-row"><span class="field-name">points_balance</span><span class="field-type">Integer</span><span class="field-note">spendable now</span></div>
+      <div class="field-row"><span class="field-name">lifetime_points</span><span class="field-type">Integer</span><span class="field-note">never decreases &rarr; tier gate</span></div>
+      <div class="field-row"><span class="field-name">tier</span><span class="field-type">String(20)</span><span class="field-note">bronze / silver / gold</span></div>
+      <div class="field-row"><span class="field-name">created_at</span><span class="field-type">DateTime</span></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h3 style="color:var(--orange)">loyalty_transactions</h3>
+      <div class="field-row"><span class="field-name">id</span><span class="field-type">Integer</span><span class="pk">PK</span></div>
+      <div class="field-row"><span class="field-name">account_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;loyalty_accounts</span></div>
+      <div class="field-row"><span class="field-name">points</span><span class="field-type">Integer</span><span class="field-note">+ earn / &minus; redeem</span></div>
+      <div class="field-row"><span class="field-name">transaction_type</span><span class="field-type">String(20)</span><span class="field-note">earn / redeem / manual</span></div>
+      <div class="field-row"><span class="field-name">sale_id</span><span class="field-type">Integer</span><span class="fk">FK&rarr;sales</span><span class="field-note" style="margin-left:4px">nullable</span></div>
+      <div class="field-row"><span class="field-name">note</span><span class="field-type">String(200)</span><span class="field-note">Kinyarwanda description</span></div>
+      <div class="field-row"><span class="field-name">created_at</span><span class="field-type">DateTime</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>Entity Relationship Diagram</h3>
+    <pre style="font-size:12px;line-height:1.9">
+  suppliers &#9472;&#9472;&#9472; supplier_id &#9472;&#9472;&#9472;&gt; products &#9668;&#9472;&#9472; product_id &#9472;&#9472;&#9472; sale_items &#9472;&#9472;&#9472; sale_id &#9472;&#9472;&#9472;&gt; sales
+                                            &#9474;                                              &#9474;
+                                product_id  &#9474;                              customer_id    &#9474; (nullable)
+                                            &#9474;                                   &#9474;          &#9474;
+                                            &#9492;&#9472;&#9472;&gt; medication_schedules       &#9474;          &#9474;
+                                                     &#9474;                          &#9474;          &#9474;
+                                           customer_id&#9474;                          &#9474;          &#9474;
+                                                     &#9492;&#9472;&#9472;&gt; customers &#9668;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;
+                                                                  &#9474;
+                                                       customer_id &#9474;
+                                                                  &#9492;&#9472;&#9472;&gt; loyalty_accounts
+                                                                                   &#9474;
+                                                                         account_id &#9474;
+                                                                                   &#9492;&#9472;&#9472;&gt; loyalty_transactions
+                                                                                              (+ optional sale_id FK)</pre>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════
+     USER FLOWS
+══════════════════════════════════════════════ -->
+<section id="s_flows" class="section">
+  <div class="phase-header">
+    <div class="phase-badge" style="background:rgba(236,72,153,.15)">&#128100;</div>
+    <div><h1>User Flows</h1><p>Step-by-step journeys for every major action in the system</p></div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;font-size:12px;align-items:center">
+    <strong style="color:var(--muted)">Legend:</strong>
+    <span style="background:rgba(59,130,246,.15);color:var(--blue);padding:3px 10px;border-radius:6px">&#9632; Staff</span>
+    <span style="background:rgba(249,115,22,.15);color:var(--orange);padding:3px 10px;border-radius:6px">&#9632; Counter Staff</span>
+    <span style="background:rgba(132,204,22,.15);color:var(--lime);padding:3px 10px;border-radius:6px">&#9632; Customer</span>
+    <span style="background:rgba(245,158,11,.15);color:var(--amber);padding:3px 10px;border-radius:6px">&#9632; System / AI</span>
+  </div>
+
+  <!-- Flow 1 -->
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#127775; Flow 1: Customer Earns Loyalty Points at POS</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">1</div><div class="flow-content"><strong style="color:var(--lime)">Customer purchases at Ishyiga POS</strong><p>Ishyiga handles the transaction. Staff gives receipt showing total amount (e.g. 5,000 RWF).</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">2</div><div class="flow-content"><strong style="color:var(--orange)">Staff opens loyalty counter: <code>/loyalty/counter</code></strong><p>Types customer's phone number in search field.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div><div class="flow-content"><strong style="color:var(--amber)">System: <code>GET /api/loyalty/lookup?phone=0788123456</code></strong><p>Looks up customer, returns name, tier (e.g. Bronze), current balance (e.g. 120 pts = 500 RWF). Customer card appears instantly.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">4</div><div class="flow-content"><strong style="color:var(--orange)">Staff types 5000 RWF from receipt</strong><p>JavaScript preview shows "Will earn 50 pts" (Bronze &times;1.0 rate). Staff confirms.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">5</div><div class="flow-content"><strong style="color:var(--amber)">System: <code>POST /api/loyalty/award</code> &rarr; &#123;customer_id:1, amount_rwf:5000&#125;</strong><p>Awards 50 pts, updates DB (points_balance +50, lifetime_points +50). Returns Kinyarwanda WhatsApp URL.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(249,115,22,.2);color:var(--orange)">6</div><div class="flow-content"><strong style="color:var(--orange)">Staff taps WhatsApp button</strong><p>Opens WhatsApp with pre-written Kinyarwanda message: "Muraho Jean &#128075; Murakoze kugura kuri Pharmacie Tramed! &#10003; Mwinjiye amanota 50 uyu munsi..."</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">7</div><div class="flow-content"><strong style="color:var(--lime)">Customer receives WhatsApp notification</strong><p>Sees their new balance, tier, and how many points to next tier. No app download required.</p></div></div>
+    </div>
+  </div>
+
+  <!-- Flow 2 -->
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#128142; Flow 2: Customer Checks Points on Portal</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">1</div><div class="flow-content"><strong style="color:var(--lime)">Customer visits <code>/portal</code></strong><p>Sees phone lookup form. Types their number (e.g. 0788 123 456).</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">2</div><div class="flow-content"><strong style="color:var(--amber)">System: <code>POST /portal</code> &rarr; lookup by phone</strong><p>Finds Uwimana Jean &rarr; redirects to <code>/portal/1</code></p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">3</div><div class="flow-content"><strong style="color:var(--lime)">Customer sees their dashboard</strong><p>Loyalty card shows tier (Bronze), 120 pts = 500 RWF value. Upcoming refills: Metformin OVERDUE, Glibenclamide OVERDUE.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">4</div><div class="flow-content"><strong style="color:var(--lime)">Customer taps "Refill now" on Metformin</strong><p>Navigates to <code>/portal/1/shop/12</code></p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">5</div><div class="flow-content"><strong style="color:var(--lime)">Sees product page with WhatsApp order button</strong><p>Name, price (1,800 RWF), stock status. Taps "Order via WhatsApp" &rarr; opens WhatsApp with pre-filled refill request to pharmacy.</p></div></div>
+    </div>
+  </div>
+
+  <!-- Flow 3 -->
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#128202; Flow 3: Staff Reviews Demand Forecast &amp; Sends Reorder</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(59,130,246,.2);color:var(--blue)">1</div><div class="flow-content"><strong style="color:var(--blue)">Staff opens <code>/forecast</code></strong><p>Page runs <code>all_product_forecasts()</code> for all 30 products &mdash; ML forecast + reorder recommendation per product.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">2</div><div class="flow-content"><strong style="color:var(--amber)">System shows urgency table</strong><p>Critical: Ciprofloxacin (1.2 days left), Vitamin C (4.8 days). Urgent: Atorvastatin. etc.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(59,130,246,.2);color:var(--blue)">3</div><div class="flow-content"><strong style="color:var(--blue)">Staff scrolls to supplier reorder messages</strong><p>4 messages grouped by supplier (Labophar, Cipla, Strides, Giga Med). Each shows product list + quantities.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(59,130,246,.2);color:var(--blue)">4</div><div class="flow-content"><strong style="color:var(--blue)">Staff taps WhatsApp button for Labophar</strong><p>Opens WhatsApp with pre-written order: "Hello Labophar Rwanda, Please prepare the following order for Pharmacie Tramed: &bull; Ciprofloxacin 500mg: 47 units &#9888;&#65039; URGENT..."</p></div></div>
+    </div>
+  </div>
+
+  <!-- Flow 4 -->
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#129302; Flow 4: Customer Chats on Public Shop</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">1</div><div class="flow-content"><strong style="color:var(--lime)">Customer visits <code>/shop</code></strong><p>Sees product grid. Scrolls or searches. Taps floating chat button (bottom right).</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">2</div><div class="flow-content"><strong style="color:var(--lime)">Types: "Do you have amoxicillin? How much?"</strong><p>JavaScript sends <code>POST /api/chat</code> with message history.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">3</div><div class="flow-content"><strong style="color:var(--amber)">chat.py builds system prompt with live inventory</strong><p>Queries all products from DB, injects into Claude Haiku system prompt. Includes stock status and price.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(236,72,153,.2);color:var(--pink)">4</div><div class="flow-content"><strong style="color:var(--pink)">Claude Haiku responds</strong><p>"Yes! Amoxicillin 500mg is in stock (45 units available). Price: 2,500 RWF per strip of 12. Note: prescription required. Would you like to order via WhatsApp?"</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(132,204,22,.2);color:var(--lime)">5</div><div class="flow-content"><strong style="color:var(--lime)">Customer taps "Order via WhatsApp" on product card</strong><p>Opens WhatsApp: "Hello Pharmacie Tramed, I'd like to order: Amoxicillin 500mg (strip/12)"</p></div></div>
+    </div>
+  </div>
+
+  <!-- Flow 5 -->
+  <div class="card">
+    <h3 class="collapsible open" onclick="tc(this)">&#9200; Flow 5: Weekly Automated Reorder Alert (Monday 08:00)</h3>
+    <div class="collapse-body">
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">1</div><div class="flow-content"><strong style="color:var(--amber)">APScheduler fires <code>weekly_reorder_summary</code></strong><p>Runs automatically every Monday at 08:00 while Flask is running.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(245,158,11,.2);color:var(--amber)">2</div><div class="flow-content"><strong style="color:var(--amber)">Calls <code>get_pharmacist_reorder_summary()</code></strong><p>Runs full forecast for all 30 products, filters to critical/urgent/soon, builds consolidated WhatsApp message.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(6,182,212,.2);color:var(--cyan)">3</div><div class="flow-content"><strong style="color:var(--cyan)">notifier.send_whatsapp() via Twilio</strong><p>If Twilio configured: sends to <code>PHARMACIST_WHATSAPP</code>. If not: prints to console log.</p></div></div>
+      <div class="flow-step"><div class="flow-num" style="background:rgba(59,130,246,.2);color:var(--blue)">4</div><div class="flow-content"><strong style="color:var(--blue)">Pharmacist receives WhatsApp</strong><p>"Pharmacie Tramed &mdash; Reorder Summary &bull; Week of 08 Jun 2026 &bull; &#128308; CRITICAL: 2 items &bull; &#128309; URGENT: 3 items..."</p></div></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════════════════════════════════════════
+     GOAL MODALS — Phase 1 Project Goals
+══════════════════════════════════════════════ -->
+
+<!-- DEMAND INTELLIGENCE -->
+<div class="goal-modal-overlay" id="gm-demand" onclick="if(event.target===this)closeGoal('demand')">
+  <div class="goal-modal">
+    <div class="goal-modal-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--blue);flex-shrink:0"></div>
+        <h2>Demand Intelligence</h2>
+      </div>
+      <button class="close-btn" onclick="closeGoal('demand')">&#10005;</button>
+    </div>
+    <div class="gtabs">
+      <div class="gtab active" id="gm-demand-tab-1" onclick="goalTab('demand',1)">The Problem</div>
+      <div class="gtab" id="gm-demand-tab-2" onclick="goalTab('demand',2)">What We Build</div>
+      <div class="gtab" id="gm-demand-tab-3" onclick="goalTab('demand',3)">Success Criteria</div>
+    </div>
+    <div class="gtab-body active" id="gm-demand-body-1">
+      <div class="goal-section">
+        <h4>Gap 3.1 &mdash; Data exists but no insights are extracted</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Ishyiga records every sale, but there is no system to transform that data into meaningful insights. No dashboard, no trend analysis, no forecasting &mdash; the data sits completely unused.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>There is no custom reporting dashboard. Revenue, margins, and top products are not visible at a glance.</span></div>
+      </div>
+      <div class="goal-section">
+        <h4>Gap 3.2 &mdash; Stock management is experience-based, not system-driven</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Ishyiga has refilling alerts but there is no predictive layer that uses historical data to anticipate demand <em>before</em> stock runs low.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--amber)"></div><span>Goal: not to replace experience &mdash; but to give it a system that makes it scalable and reliable across product lines and seasons.</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-demand-body-2">
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(139,92,246,.15);color:var(--purple)">SOFTWARE ENGINEERING</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Data extraction pipeline</strong> &mdash; pull sales data from Ishyiga, clean and structure it for analysis</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Demand forecasting model</strong> &mdash; predict stock needs using historical sales patterns</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Custom reporting dashboard</strong> &mdash; web-based daily summary showing revenue, margins, alerts, and trends</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(236,72,153,.15);color:var(--pink)">AI / ML LAYER</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">Sales trend analysis</strong> &mdash; identify which products sell more during certain seasons or events</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">Predictive restocking</strong> &mdash; forecast exact quantities to order per supplier per cycle</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-demand-body-3">
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>30-day demand forecast generated per product, updated automatically from sales data</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Reorder recommendations ranked critical &rarr; urgent &rarr; soon &rarr; ok with days-of-stock remaining</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Revenue trend dashboard displaying today / week / month revenue cards</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Top 5 products by revenue visible on the main dashboard at all times</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Linear regression + day-of-week seasonality model built on numpy &amp; pandas</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Data pipeline reads from Ishyiga (CSV import or API) as the primary data source</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER RETENTION -->
+<div class="goal-modal-overlay" id="gm-retention" onclick="if(event.target===this)closeGoal('retention')">
+  <div class="goal-modal">
+    <div class="goal-modal-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+        <h2>Customer Retention</h2>
+      </div>
+      <button class="close-btn" onclick="closeGoal('retention')">&#10005;</button>
+    </div>
+    <div class="gtabs">
+      <div class="gtab active" id="gm-retention-tab-1" onclick="goalTab('retention',1)">The Problem</div>
+      <div class="gtab" id="gm-retention-tab-2" onclick="goalTab('retention',2)">What We Build</div>
+      <div class="gtab" id="gm-retention-tab-3" onclick="goalTab('retention',3)">Success Criteria</div>
+    </div>
+    <div class="gtab-body active" id="gm-retention-body-1">
+      <div class="goal-section">
+        <h4>Gap 3.3 &mdash; No customer retention system exists</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>No WhatsApp automation, no chronic medication reminder system, and no loyalty program currently exists at Tramed.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Patients on recurring prescriptions have no structured follow-up. Retention depends entirely on the customer remembering to return.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--amber)"></div><span>Ishyiga has partial customer records &mdash; the gap is the intelligence layer that proactively acts on those records before a patient lapses.</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-retention-body-2">
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(16,185,129,.15);color:var(--green)">NO-CODE</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--green)"></div><span><strong style="color:var(--text)">WhatsApp Business setup</strong> &mdash; automated replies for stock availability queries</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(139,92,246,.15);color:var(--purple)">SOFTWARE ENGINEERING</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Chronic medication reminder system</strong> &mdash; automated WhatsApp reminders tied to purchase history</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Supplier automation scripts</strong> &mdash; auto-generate reorder messages when stock hits minimum</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(236,72,153,.15);color:var(--pink)">AI / ML LAYER</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">Customer segmentation</strong> &mdash; group customers by purchase behaviour for targeted communication</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-retention-body-3">
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Chronic patients receive WhatsApp refill reminders 3 days before their next scheduled refill date</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Staff can view all due and overdue reminders from a single messages screen</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Repeat purchase patterns auto-detected from sales history (&ge;2 purchases of the same product)</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Customers can self-serve via portal to check their refill schedules and purchase history</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Supplier reorder WhatsApp messages auto-generated and grouped per supplier with exact quantities</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOYALTY PROGRAMME -->
+<div class="goal-modal-overlay" id="gm-loyalty" onclick="if(event.target===this)closeGoal('loyalty')">
+  <div class="goal-modal">
+    <div class="goal-modal-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>
+        <h2>Loyalty Programme</h2>
+      </div>
+      <button class="close-btn" onclick="closeGoal('loyalty')">&#10005;</button>
+    </div>
+    <div class="gtabs">
+      <div class="gtab active" id="gm-loyalty-tab-1" onclick="goalTab('loyalty',1)">The Problem</div>
+      <div class="gtab" id="gm-loyalty-tab-2" onclick="goalTab('loyalty',2)">What We Build</div>
+      <div class="gtab" id="gm-loyalty-tab-3" onclick="goalTab('loyalty',3)">Success Criteria</div>
+    </div>
+    <div class="gtab-body active" id="gm-loyalty-body-1">
+      <div class="goal-section">
+        <h4>Gap 3.3 &mdash; No loyalty or structured reward system</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>No loyalty program exists. There is no structured reward system for repeat customers &mdash; repeat business depends on personal relationship and habit, not incentive.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Patients have no financial reason to choose Tramed over a competitor pharmacy for their next refill.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--amber)"></div><span>Ishyiga partially tracks customer records but this data is not leveraged for retention, segmentation, or rewards.</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-loyalty-body-2">
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(16,185,129,.15);color:var(--green)">NO-CODE</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--green)"></div><span><strong style="color:var(--text)">Customer loyalty tracker</strong> &mdash; simple digital system for repeat customer rewards</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(139,92,246,.15);color:var(--purple)">SOFTWARE ENGINEERING</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Full CRM</strong> &mdash; chronic medication reminders and loyalty system built on top of Ishyiga customer data</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(236,72,153,.15);color:var(--pink)">AI / ML LAYER</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">Customer segmentation</strong> &mdash; group by purchase behaviour for targeted communication</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">Profit margin optimization</strong> &mdash; recommend which products to prioritize based on margin data</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-loyalty-body-3">
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Three-tier system: Bronze (0&ndash;499 pts &times;1.0), Silver (500&ndash;1999 pts &times;1.5), Gold (2000+ pts &times;2.0)</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Points earned at 1 pt per 100 RWF spent; redeemable at 100 pts = 500 RWF discount</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Kinyarwanda WhatsApp notification sent automatically every time points are awarded</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>POS counter screen allows staff to award points in under 30 seconds &mdash; no page reload</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Lifetime points control tier and never decrease on redemption &mdash; customers keep their earned status</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Customer portal allows self-service balance and tier checks by phone number, no app required</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER-FACING SHOP -->
+<div class="goal-modal-overlay" id="gm-shop" onclick="if(event.target===this)closeGoal('shop')">
+  <div class="goal-modal">
+    <div class="goal-modal-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--cyan);flex-shrink:0"></div>
+        <h2>Customer-Facing Shop</h2>
+      </div>
+      <button class="close-btn" onclick="closeGoal('shop')">&#10005;</button>
+    </div>
+    <div class="gtabs">
+      <div class="gtab active" id="gm-shop-tab-1" onclick="goalTab('shop',1)">The Problem</div>
+      <div class="gtab" id="gm-shop-tab-2" onclick="goalTab('shop',2)">What We Build</div>
+      <div class="gtab" id="gm-shop-tab-3" onclick="goalTab('shop',3)">Success Criteria</div>
+    </div>
+    <div class="gtab-body active" id="gm-shop-body-1">
+      <div class="goal-section">
+        <h4>Gap &mdash; No digital customer-facing presence</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>No WhatsApp communication channel exists. Customers cannot check stock availability, pricing, or place orders without physically visiting the pharmacy.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>No delivery management system. No public digital storefront. Tramed is invisible outside its physical location.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>No AI layer &mdash; Ishyiga is a transactional system with no intelligent or conversational features for customers.</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-shop-body-2">
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(16,185,129,.15);color:var(--green)">NO-CODE</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--green)"></div><span><strong style="color:var(--text)">WhatsApp Business setup</strong> &mdash; automated replies for stock availability queries</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(139,92,246,.15);color:var(--purple)">SOFTWARE ENGINEERING</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Public marketplace</strong> &mdash; browse products with live stock, filter by category, order via WhatsApp</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Customer portal</strong> &mdash; self-service page for loyalty balance, refill schedules, and purchase history</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(236,72,153,.15);color:var(--pink)">AI / ML LAYER</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--pink)"></div><span><strong style="color:var(--text)">AI chat assistant</strong> &mdash; Claude Haiku with live inventory context, multilingual (English / French / Kinyarwanda), never diagnoses</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-shop-body-3">
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Public marketplace accessible via browser with live stock levels and RWF pricing per product</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>WhatsApp order button pre-fills message with product name and customer name &mdash; one tap to send</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>AI chat assistant answers stock and pricing queries in real-time without staff involvement</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Customer portal reachable by phone number &mdash; no account creation, no app download required</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Chatbot responds in the customer's preferred language and directs orders to WhatsApp, never diagnoses</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- AUTOMATED ALERTS -->
+<div class="goal-modal-overlay" id="gm-alerts" onclick="if(event.target===this)closeGoal('alerts')">
+  <div class="goal-modal">
+    <div class="goal-modal-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--pink);flex-shrink:0"></div>
+        <h2>Automated Alerts</h2>
+      </div>
+      <button class="close-btn" onclick="closeGoal('alerts')">&#10005;</button>
+    </div>
+    <div class="gtabs">
+      <div class="gtab active" id="gm-alerts-tab-1" onclick="goalTab('alerts',1)">The Problem</div>
+      <div class="gtab" id="gm-alerts-tab-2" onclick="goalTab('alerts',2)">What We Build</div>
+      <div class="gtab" id="gm-alerts-tab-3" onclick="goalTab('alerts',3)">Success Criteria</div>
+    </div>
+    <div class="gtab-body active" id="gm-alerts-body-1">
+      <div class="goal-section">
+        <h4>Gap 3.1 &mdash; No automation acts on Ishyiga data</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Ishyiga records data but nothing acts on it automatically. No scheduled alerts, no outbound communication triggered by stock levels or sales thresholds.</span></div>
+      </div>
+      <div class="goal-section">
+        <h4>Gap 3.2 &mdash; Refilling alerts exist but stop at the screen</h4>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--red)"></div><span>Ishyiga shows low-stock alerts in the UI but no message is automatically sent to the pharmacist or to suppliers. Action still requires manual intervention every time.</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--amber)"></div><span>Goal: close the loop &mdash; stock signal in Ishyiga &rarr; automatic WhatsApp to pharmacist and relevant supplier, no human in the middle.</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-alerts-body-2">
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(16,185,129,.15);color:var(--green)">NO-CODE</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--green)"></div><span><strong style="color:var(--text)">Make / Zapier automations</strong> &mdash; connect Ishyiga alerts to WhatsApp and supplier messages</span></div>
+      </div>
+      <div class="goal-section">
+        <span class="goal-badge" style="background:rgba(139,92,246,.15);color:var(--purple)">SOFTWARE ENGINEERING</span>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Stock anomaly detection</strong> &mdash; flag unusual stock discrepancies automatically</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">Supplier automation scripts</strong> &mdash; auto-generate reorder messages when stock hits minimum</span></div>
+        <div class="goal-item"><div class="gi-dot" style="background:var(--purple)"></div><span><strong style="color:var(--text)">APScheduler</strong> &mdash; weekly reorder summary sent to pharmacist every Monday at 08:00 via WhatsApp</span></div>
+      </div>
+    </div>
+    <div class="gtab-body" id="gm-alerts-body-3">
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Pharmacist receives automated WhatsApp every Monday with critical / urgent / soon stock breakdown</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Supplier reorder messages auto-generated, grouped per supplier, with exact recommended quantities</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>Stock anomaly detection flags unusual spikes or drops (theft, spoilage, data entry error)</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>APScheduler embedded in Flask app &mdash; no separate cron service or additional infrastructure needed</span></div>
+      <div class="sc-row"><span class="sc-check">&#10003;</span><span>All alerts fall back gracefully to console log if Twilio credentials are not yet configured</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (el) el.classList.add('active');
+  window.scrollTo(0, 0);
+  if (window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+}
+function tc(el) {
+  el.classList.toggle('open');
+  const b = el.nextElementSibling;
+  if (b && b.classList.contains('collapse-body')) b.classList.toggle('hidden');
+}
+function openGoal(k) {
+  document.getElementById('gm-' + k).classList.add('open');
+}
+function closeGoal(k) {
+  document.getElementById('gm-' + k).classList.remove('open');
+}
+function goalTab(k, t) {
+  var pfx = '#gm-' + k + ' ';
+  document.querySelectorAll(pfx + '.gtab').forEach(function(x){x.classList.remove('active')});
+  document.querySelectorAll(pfx + '.gtab-body').forEach(function(x){x.classList.remove('active')});
+  document.getElementById('gm-' + k + '-tab-' + t).classList.add('active');
+  document.getElementById('gm-' + k + '-body-' + t).classList.add('active');
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.goal-modal-overlay.open').forEach(function(o) {
+      o.classList.remove('open');
+    });
+  }
+});
+</script>
+
+<script>
+window.CLAUDE_CONTEXT = `This page documents the full architecture of Pharmacie Tramed — a Python Flask pharmacy management system.
+
+PROJECT STACK:
+- Backend: Python 3 + Flask
+- Database: SQLAlchemy ORM (instance/ folder holds the DB file)
+- Frontend: Jinja2 HTML templates (templates/ folder) + static assets (static/)
+
+KEY FILES:
+- app.py — main Flask app, all route definitions, application entry point
+- database.py — SQLAlchemy models (all DB tables and relationships)
+- retention.py — customer retention logic (identify at-risk customers, re-engagement)
+- loyalty.py — loyalty points system (earn, redeem, track customer rewards)
+- forecasting.py — stock forecasting (predict when products need restocking)
+- notifier.py — notification system (alerts for low stock, customer re-engagement)
+- chat.py — AI chat functionality
+- seed_data.py — database seeding with test data
+
+ARCHITECTURE PATTERN:
+- Flask routes in app.py call functions from domain modules (retention.py, loyalty.py, etc.)
+- All DB access goes through SQLAlchemy models defined in database.py
+- Templates in templates/ render the UI, static/ holds CSS/JS assets
+
+Answer questions precisely. Reference exact function names, file paths, and line numbers when helpful.`;
+
+window.CLAUDE_FILES = [
+  {
+    path: 'C:\\Users\\kaber\\OneDrive\\Desktop\\real app\\tramed\\app.py',
+    label: 'app.py (routes)'
+  },
+  {
+    path: 'C:\\Users\\kaber\\OneDrive\\Desktop\\real app\\tramed\\database.py',
+    label: 'database.py (models)'
+  },
+];
+
+window.CLAUDE_SUGGESTIONS = [
+  'How is the Flask app structured — what are the main routes?',
+  'What database tables exist and how are they related?',
+  'How do the different modules (retention, loyalty, forecasting) connect?',
+  'Walk me through a typical request from browser to database.',
+];
+</script>
+<script src="../claude-chat.js"></script>
+</body>
+</html>
