@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SparkBind Installation Guide</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; color: #333; }
+    header { background: #1a73e8; color: white; padding: 32px 40px; }
+    header h1 { font-size: 28px; font-weight: 700; }
+    header p { margin-top: 6px; font-size: 15px; opacity: 0.9; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 12px; font-size: 12px; margin-top: 10px; }
+    main { max-width: 860px; margin: 40px auto; padding: 0 20px 60px; }
+    .section { background: white; border-radius: 10px; padding: 28px 32px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .section h2 { font-size: 18px; color: #1a73e8; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .section h2 .num { background: #1a73e8; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    p { font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+    ul, ol { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 14px; line-height: 1.8; }
+    code { background: #f1f3f4; border-radius: 4px; padding: 2px 7px; font-family: 'Courier New', monospace; font-size: 13px; color: #c0392b; }
+    pre { background: #1e1e1e; color: #d4d4d4; border-radius: 8px; padding: 16px 20px; font-size: 13px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 12px 0; line-height: 1.6; }
+    pre .comment { color: #6a9955; }
+    pre .key { color: #9cdcfe; }
+    pre .val { color: #ce9178; }
+    .status-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .status-table th { background: #f1f3f4; text-align: left; padding: 10px 14px; font-size: 13px; border-bottom: 2px solid #e0e0e0; }
+    .status-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+    .ok { color: #34a853; font-weight: 600; }
+    .missing { color: #ea4335; font-weight: 600; }
+    .warn { color: #fbbc04; font-weight: 600; }
+    .note { background: #fff8e1; border-left: 4px solid #fbbc04; border-radius: 4px; padding: 12px 16px; font-size: 13px; margin: 12px 0; }
+    .info { background: #e8f0fe; border-left: 4px solid #1a73e8; border-radius: 4px; padding: 12px 16px; font-size: 13px; margin: 12px 0; }
+    .success { background: #e6f4ea; border-left: 4px solid #34a853; border-radius: 4px; padding: 12px 16px; font-size: 13px; margin: 12px 0; }
+    .field-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .field-table th { background: #f1f3f4; text-align: left; padding: 10px 14px; font-size: 13px; border-bottom: 2px solid #e0e0e0; }
+    .field-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .field-table td:first-child { font-family: 'Courier New', monospace; color: #c0392b; white-space: nowrap; }
+    .required { color: #ea4335; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .optional { color: #888; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    footer { text-align: center; font-size: 12px; color: #999; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>SparkBind — Installation Guide</h1>
+  <p>Ishyiga Pharmacy Network · Distributed ETL Agent</p>
+  <span class="badge">Version 1.0-SNAPSHOT</span>
+  <span class="badge">Java 21+ · Maven 3.9+</span>
+</header>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <div class="section">
+    <h2><span class="num">0</span> What is SparkBind?</h2>
+    <p>SparkBind is a background sync agent that runs silently on each Ishyiga pharmacy computer. It reads data from the local Ishyiga POS database (Apache Derby) and sends it to the central Hirwa cloud server — every 30 seconds or on a schedule.</p>
+    <p>It syncs: <strong>stock levels, medications, patients, and sales invoices.</strong> It also backs up the local database to AWS S3 every 12 hours.</p>
+    <div class="info">SparkBind runs in the background. It has no window or interface — it works silently and logs activity to a <code>logs/</code> folder.</div>
+  </div>
+
+  <!-- PREREQUISITES -->
+  <div class="section">
+    <h2><span class="num">1</span> Prerequisites Check</h2>
+    <p>Before installing, confirm these are present on the machine:</p>
+    <table class="status-table">
+      <tr><th>Requirement</th><th>Status on this machine</th><th>Notes</th></tr>
+      <tr><td>Java 21+</td><td class="ok">✔ Installed (Java 22 / Java 25)</td><td>Located at <code>C:\Program Files\Java\jdk-22</code></td></tr>
+      <tr><td>Apache Maven</td><td class="ok">✔ Installed (3.9.6)</td><td>Located at <code>C:\Users\TRAMED\maven\apache-maven-3.9.6</code></td></tr>
+      <tr><td>Ishyiga POS / Derby DB</td><td class="ok">✔ Running (port 1527 open)</td><td>Derby is live on this machine</td></tr>
+      <tr><td>Internet connection</td><td class="warn">Required at runtime</td><td>SparkBind checks internet before every sync</td></tr>
+      <tr><td>Hirwa API credentials</td><td class="missing">✘ Must be obtained</td><td>API key + pharmacy ID from Hirwa team</td></tr>
+    </table>
+  </div>
+
+  <!-- BUILD -->
+  <div class="section">
+    <h2><span class="num">2</span> Build the Project</h2>
+    <p>Open a <strong>new PowerShell window</strong> and run these commands one by one:</p>
+
+    <p><strong>Step 2a — Set Java version for this session:</strong></p>
+    <pre>$env:JAVA_HOME = "C:\Program Files\Java\jdk-22"</pre>
+
+    <p><strong>Step 2b — Navigate to the project folder:</strong></p>
+    <pre>cd "C:\Users\TRAMED\Downloads\hirwa-spark-bind-develop\hirwa-spark-bind-develop"</pre>
+
+    <p><strong>Step 2c — Build:</strong></p>
+    <pre>& "C:\Users\TRAMED\maven\apache-maven-3.9.6\bin\mvn.cmd" clean package -DskipTests</pre>
+
+    <p>Maven will download dependencies and compile the code. At the end you should see:</p>
+    <div class="success">BUILD SUCCESS — Total time: ~30 seconds</div>
+    <p>The built file will be created at:</p>
+    <pre>target\SparkBind-1.0-SNAPSHOT.jar</pre>
+  </div>
+
+  <!-- CONFIGURE -->
+  <div class="section">
+    <h2><span class="num">3</span> Configure the App</h2>
+    <p>SparkBind reads its settings from a file called <code>application.properties</code>. You need to create this file by copying the example:</p>
+
+    <p><strong>Step 3a — Copy the example config:</strong></p>
+    <pre>copy "src\main\resources\application.properties.example" "src\main\resources\application.properties"</pre>
+
+    <p><strong>Step 3b — Open and fill in the fields:</strong></p>
+    <p>Open <code>src\main\resources\application.properties</code> in any text editor and fill in the blanks:</p>
+
+    <table class="field-table">
+      <tr><th>Field</th><th>What it means</th><th>Where to get it</th></tr>
+      <tr>
+        <td>db.path=</td>
+        <td>Path to the local Ishyiga Derby database folder on this machine</td>
+        <td>Find the folder named <code>VINEBENDB</code> or similar on the hard drive. Example: <code>C:/POS/data/VINEBENDB</code></td>
+      </tr>
+      <tr>
+        <td>db.backup.path=</td>
+        <td>Where to save local DB backups (zip files) before uploading to S3</td>
+        <td>Any local folder. Example: <code>C:/backups/</code> <span class="optional">optional</span></td>
+      </tr>
+      <tr>
+        <td>api.base.url=</td>
+        <td>The web address of the central Hirwa server</td>
+        <td>Get from the Hirwa/Ishyiga technical team</td>
+      </tr>
+      <tr>
+        <td>api.key=</td>
+        <td>Secret password that proves this pharmacy is allowed to send data</td>
+        <td>Get from the Hirwa/Ishyiga technical team <span class="required">required</span></td>
+      </tr>
+      <tr>
+        <td>api.pharmacy.id=</td>
+        <td>The unique ID for this specific pharmacy branch</td>
+        <td>Get from the Hirwa/Ishyiga technical team <span class="required">required</span></td>
+      </tr>
+      <tr>
+        <td>inventory.api.url=</td>
+        <td>URL endpoint for sending stock/inventory updates</td>
+        <td>Get from the Hirwa/Ishyiga technical team</td>
+      </tr>
+      <tr>
+        <td>inventory.api.key=</td>
+        <td>API key specifically for the inventory endpoint</td>
+        <td>Get from the Hirwa/Ishyiga technical team</td>
+      </tr>
+      <tr>
+        <td>fetch.interval.seconds=30</td>
+        <td>How often (in seconds) to sync stock data</td>
+        <td>Already set to 30. Change if needed.</td>
+      </tr>
+      <tr>
+        <td>graebm.enabled=false</td>
+        <td>Whether to sync GRA tax (EBM) transactions</td>
+        <td>Set to <code>true</code> only if this pharmacy uses GRA EBM system</td>
+      </tr>
+      <tr>
+        <td>aws.s3.bucket.name=</td>
+        <td>AWS S3 bucket name for database backups</td>
+        <td>Get from Hirwa team <span class="optional">optional</span></td>
+      </tr>
+    </table>
+
+    <div class="note">You only need the fields marked <span class="required">required</span> to get started. Optional fields can be left blank for now.</div>
+
+    <p><strong>Example of a filled config:</strong></p>
+    <pre><span class="comment"># Database</span>
+<span class="key">db.url</span>=<span class="val">jdbc:derby://localhost:1527/VINEBENDB</span>
+<span class="key">db.path</span>=<span class="val">C:/POS/data/VINEBENDB</span>
+<span class="key">db.backup.path</span>=<span class="val">C:/backups/</span>
+
+<span class="comment"># Central API</span>
+<span class="key">api.base.url</span>=<span class="val">https://api.hirwa.rw</span>
+<span class="key">api.key</span>=<span class="val">your-secret-key-here</span>
+<span class="key">api.pharmacy.id</span>=<span class="val">VINE-HQ</span>
+
+<span class="comment"># Sync interval</span>
+<span class="key">fetch.interval.seconds</span>=<span class="val">30</span></pre>
+  </div>
+
+  <!-- RUN -->
+  <div class="section">
+    <h2><span class="num">4</span> Run SparkBind</h2>
+    <p>Once configured, you can start SparkBind in two ways:</p>
+
+    <p><strong>Option A — Run once manually (for testing):</strong></p>
+    <pre>start.bat</pre>
+    <p>This runs the sync once and shows output in the terminal. Good for testing your config is correct.</p>
+
+    <p><strong>Option B — Install as a Windows auto-start service (recommended for production):</strong></p>
+    <pre><span class="comment"># Run PowerShell as Administrator, then:</span>
+setup.bat</pre>
+    <p>This registers SparkBind as a Windows Scheduled Task that starts automatically every time the computer boots — no manual action needed.</p>
+
+    <div class="info">To stop a running instance, create a file called <code>shutdown.txt</code> in the project folder. SparkBind will detect it and stop gracefully.</div>
+  </div>
+
+  <!-- VERIFY -->
+  <div class="section">
+    <h2><span class="num">5</span> Verify It's Working</h2>
+    <p>After starting, check these signs that SparkBind is working correctly:</p>
+    <ol>
+      <li>Terminal shows: <code>Internet connection verified.</code></li>
+      <li>Terminal shows: <code>Database connection successful.</code></li>
+      <li>Terminal shows: <code>Sent Live Stocks: [...]</code> every 30 seconds</li>
+      <li>No <code>ERROR</code> lines appear in the output</li>
+      <li>Log files appear in the <code>logs/</code> folder inside the project</li>
+    </ol>
+    <div class="note">If you see <code>No internet connection available</code> — check your network. SparkBind will retry automatically every hour.</div>
+  </div>
+
+  <!-- TROUBLESHOOTING -->
+  <div class="section">
+    <h2><span class="num">6</span> Troubleshooting</h2>
+    <table class="status-table">
+      <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
+      <tr><td><code>mvn not recognized</code></td><td>Maven not in PATH</td><td>Use full path: <code>C:\Users\TRAMED\maven\apache-maven-3.9.6\bin\mvn.cmd</code> or restart VS Code</td></tr>
+      <tr><td><code>BUILD FAILURE</code></td><td>Java version or missing file</td><td>Make sure <code>$env:JAVA_HOME</code> is set to JDK 22 before building</td></tr>
+      <tr><td><code>Database Check: FAILED</code></td><td>Derby DB locked or wrong path</td><td>Check <code>db.path</code> in config. Make sure Ishyiga POS is running.</td></tr>
+      <tr><td><code>401 Unauthorized</code></td><td>Wrong API key</td><td>Check <code>api.key</code> and <code>api.pharmacy.id</code> in config</td></tr>
+      <tr><td><code>No internet connection</code></td><td>Network issue</td><td>SparkBind retries every hour automatically</td></tr>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <p>SparkBind · Ishyiga Pharmacy Network · Installation Guide · Generated 2026-06-23</p>
+</footer>
+
+</body>
+</html>
