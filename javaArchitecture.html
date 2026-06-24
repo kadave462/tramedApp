@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Java Project Architecture — SparkBind Edition</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.7; }
+
+    /* ── Header ── */
+    header { background: linear-gradient(135deg, #1a56db 0%, #0e4ab8 60%, #7c3aed 100%); padding: 48px 40px 36px; text-align: center; }
+    header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+    header p  { margin-top: 10px; font-size: 16px; opacity: 0.85; }
+    .badge    { display: inline-block; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 14px; font-size: 12px; margin: 8px 4px 0; }
+
+    /* ── Layout ── */
+    main { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Section card ── */
+    .section { background: #1a1d27; border-radius: 12px; padding: 28px 30px; margin: 28px 0; border: 1px solid #2a2d3a; }
+    .section h2 { font-size: 20px; color: #60a5fa; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .section h3 { font-size: 16px; color: #a78bfa; margin: 18px 0 8px; }
+    .section p  { font-size: 14px; color: #cbd5e1; margin-bottom: 10px; }
+    ul, ol { padding-left: 20px; margin-bottom: 10px; }
+    li { font-size: 14px; color: #cbd5e1; margin-bottom: 4px; }
+
+    /* ── Step number badge ── */
+    .num { background: #1a56db; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .num-purple { background: #7c3aed; }
+    .num-green  { background: #059669; }
+    .num-amber  { background: #d97706; }
+    .num-red    { background: #dc2626; }
+
+    /* ── Code blocks ── */
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px 18px; font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; font-size: 13px; overflow-x: auto; margin: 10px 0; line-height: 1.6; }
+    code { background: #1e2130; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 13px; color: #f97316; }
+    .kw  { color: #60a5fa; }     /* keyword  */
+    .st  { color: #86efac; }     /* string   */
+    .cm  { color: #6b7280; }     /* comment  */
+    .cn  { color: #f9a8d4; }     /* class name */
+    .fn  { color: #fde68a; }     /* function */
+    .nm  { color: #67e8f9; }     /* number / const */
+
+    /* ── Architecture diagram ── */
+    .diagram { background: #0d1117; border: 1px solid #2a2d3a; border-radius: 10px; padding: 20px 24px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px; line-height: 1.8; overflow-x: auto; margin: 14px 0; }
+    .d-blue   { color: #60a5fa; }
+    .d-green  { color: #86efac; }
+    .d-yellow { color: #fde68a; }
+    .d-purple { color: #c084fc; }
+    .d-orange { color: #fb923c; }
+    .d-red    { color: #f87171; }
+    .d-cyan   { color: #67e8f9; }
+    .d-gray   { color: #6b7280; }
+
+    /* ── Info boxes ── */
+    .info  { background: #0f2942; border-left: 4px solid #1a56db; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #bfdbfe; margin: 12px 0; }
+    .tip   { background: #042f1e; border-left: 4px solid #059669; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #a7f3d0; margin: 12px 0; }
+    .warn  { background: #2d1c00; border-left: 4px solid #d97706; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #fde68a; margin: 12px 0; }
+
+    /* ── Flow arrow table ── */
+    .flow-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .flow-table th { background: #1e2130; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 14px; text-align: left; border-bottom: 2px solid #2a2d3a; }
+    .flow-table td { padding: 10px 14px; border-bottom: 1px solid #1e2130; font-size: 13px; color: #cbd5e1; vertical-align: top; }
+    .flow-table tr:last-child td { border-bottom: none; }
+    .flow-table td:first-child { color: #60a5fa; font-weight: 600; white-space: nowrap; }
+    .flow-table tr:hover td { background: #1e2130; }
+
+    /* ── Tag pill ── */
+    .tag { display: inline-block; border-radius: 4px; padding: 1px 8px; font-size: 11px; font-weight: 600; margin: 0 2px; }
+    .tag-blue   { background: #1e3a5f; color: #60a5fa; }
+    .tag-green  { background: #022c22; color: #86efac; }
+    .tag-orange { background: #3f1f00; color: #fb923c; }
+    .tag-purple { background: #2e1a4a; color: #c084fc; }
+    .tag-red    { background: #3b0a0a; color: #f87171; }
+
+    /* ── Big architecture overview ── */
+    .arch-box { border: 2px solid; border-radius: 10px; padding: 16px; margin: 8px 0; }
+    .arch-blue   { border-color: #1a56db; background: rgba(26,86,219,0.08); }
+    .arch-green  { border-color: #059669; background: rgba(5,150,105,0.08); }
+    .arch-purple { border-color: #7c3aed; background: rgba(124,58,237,0.08); }
+    .arch-orange { border-color: #d97706; background: rgba(217,119,6,0.08); }
+    .arch-red    { border-color: #dc2626; background: rgba(220,38,38,0.08); }
+    .arch-title  { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .arch-body   { font-size: 12px; color: #94a3b8; }
+
+    /* ── Arrow ── */
+    .arrow { text-align: center; font-size: 22px; color: #4b5563; margin: 4px 0; }
+
+    /* ── Two columns ── */
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 10px 0; }
+    @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+
+    /* ── Footer ── */
+    footer { text-align: center; font-size: 12px; color: #4b5563; margin-top: 40px; padding-bottom: 20px; }
+
+    /* ── TOC ── */
+    .toc { background: #1a1d27; border-radius: 10px; padding: 20px 24px; margin: 24px 0; border: 1px solid #2a2d3a; }
+    .toc h2 { font-size: 15px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc a  { color: #60a5fa; text-decoration: none; font-size: 13px; }
+    .toc a:hover { text-decoration: underline; }
+    .toc li { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Java Project Architecture</h1>
+  <p>Everything from writing code to running the app — using SparkBind as a real example</p>
+  <span class="badge">Java 21+</span>
+  <span class="badge">Maven 3.9+</span>
+  <span class="badge">Apache Derby</span>
+  <span class="badge">JDBC</span>
+  <span class="badge">Jackson / HttpClient / AWS S3</span>
+</header>
+
+<main>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#big-picture">The Big Picture — What Happens When You Run a Java App</a></li>
+      <li><a href="#source">1. Java Source Files (.java)</a></li>
+      <li><a href="#maven">2. Maven + pom.xml — the Build System</a></li>
+      <li><a href="#compile">3. Compilation — .java → .class → .jar</a></li>
+      <li><a href="#jvm">4. The JVM — What Actually Runs Your Code</a></li>
+      <li><a href="#jdbc">5. JDBC — How Java Talks to Databases</a></li>
+      <li><a href="#derby">6. Apache Derby — The Local Database</a></li>
+      <li><a href="#httpclient">7. HttpClient — Sending Data to the Cloud</a></li>
+      <li><a href="#jackson">8. Jackson — Turning Java Objects into JSON</a></li>
+      <li><a href="#aws">9. AWS SDK — Uploading Backups to S3</a></li>
+      <li><a href="#sparkbind">10. SparkBind — How All These Fit Together</a></li>
+    </ol>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- BIG PICTURE -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="big-picture">
+    <h2><span class="num">0</span> The Big Picture</h2>
+    <p>A Java project is a collection of plain text <code>.java</code> files. Before you can <em>run</em> them, three things must happen:</p>
+
+    <div class="diagram">
+<span class="d-blue">You write</span>                <span class="d-green">Maven builds</span>               <span class="d-yellow">JVM runs</span>
+<br>
+<span class="d-blue">┌────────────────┐</span>    <span class="d-green">┌────────────────┐</span>    <span class="d-yellow">┌────────────────┐</span>
+<span class="d-blue">│  MyClass.java  │</span>    <span class="d-green">│  MyClass.class │</span>    <span class="d-yellow">│  app.jar       │</span>
+<span class="d-blue">│  (plain text,  │───►│  (bytecode,    │───►│  (everything   │───► <span class="d-red">Running App</span>
+<span class="d-blue">│  human-readable│</span>    <span class="d-green">│  machine-safe) │</span>    <span class="d-yellow">│  bundled)      │</span>
+<span class="d-blue">└────────────────┘</span>    <span class="d-green">└────────────────┘</span>    <span class="d-yellow">└────────────────┘</span>
+<br>
+<span class="d-gray">  javac (compiler)        mvn package             java -jar</span>
+    </div>
+
+    <p>This whole process is managed by <strong>Maven</strong>. You just type <code>mvn clean package</code> and Maven does all three steps automatically.</p>
+
+    <div class="tip">Think of it like cooking: <strong>.java</strong> = raw ingredients, <strong>Maven</strong> = the chef who follows the recipe in <strong>pom.xml</strong>, <strong>.jar</strong> = the finished dish, <strong>JVM</strong> = the oven that heats (runs) it.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 1. SOURCE FILES -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="source">
+    <h2><span class="num">1</span> Java Source Files (.java)</h2>
+    <p>Every piece of logic in a Java project lives in a <code>.java</code> file. Each file contains one <strong>class</strong> — a blueprint for doing something.</p>
+
+    <h3>SparkBind's main files</h3>
+    <div class="diagram">
+<span class="d-blue">C:\SparkBind\src\main\java\com\hirwa\</span>
+<br>
+<span class="d-green">├── Main.java</span>               <span class="d-gray">← Entry point: connects to DB, schedules syncs</span>
+<span class="d-green">├── PharmacyDistributedJob.java</span>  <span class="d-gray">← Syncs products, patients, invoices every hour</span>
+<span class="d-yellow">├── core/</span>
+<span class="d-yellow">│   ├── database/</span>
+<span class="d-yellow">│   │   └── DerbyClient.java</span>  <span class="d-gray">← Opens a connection to the Derby database</span>
+<span class="d-yellow">│   ├── api/</span>
+<span class="d-yellow">│   │   └── HirwaClient.java</span>  <span class="d-gray">← Sends HTTP POST requests to Hirwa API</span>
+<span class="d-yellow">│   └── s3/</span>
+<span class="d-yellow">│       └── S3Uploader.java</span>   <span class="d-gray">← Uploads database backup to AWS S3</span>
+    </div>
+
+    <h3>What a class looks like</h3>
+    <pre><span class="kw">package</span> com.hirwa;              <span class="cm">// like a folder address for this file</span>
+
+<span class="kw">import</span> java.sql.Connection;    <span class="cm">// bring in JDBC Connection class</span>
+<span class="kw">import</span> java.sql.ResultSet;
+
+<span class="kw">public class</span> <span class="cn">DerbyClient</span> {
+
+    <span class="cm">// A "field" — this object holds the DB connection</span>
+    <span class="kw">private</span> Connection connection;
+
+    <span class="cm">// A "method" — code that runs when called</span>
+    <span class="kw">public</span> Connection <span class="fn">connect</span>(String url) <span class="kw">throws</span> Exception {
+        connection = DriverManager.<span class="fn">getConnection</span>(url);
+        <span class="kw">return</span> connection;
+    }
+}</pre>
+
+    <div class="info">
+      <strong>Package = folder for classes.</strong> <code>com.hirwa</code> means the file is stored at <code>src/main/java/com/hirwa/</code>. It prevents class name conflicts across libraries.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 2. MAVEN -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="maven">
+    <h2><span class="num num-purple">2</span> Maven + pom.xml — the Build System</h2>
+    <p>Maven is the tool that manages your entire project: it <strong>downloads libraries</strong>, <strong>compiles code</strong>, and <strong>packages everything into a JAR</strong>.</p>
+
+    <p>Its config file is <code>pom.xml</code> — "Project Object Model". Think of it as the project's recipe card.</p>
+
+    <h3>What pom.xml does (SparkBind example)</h3>
+    <pre><span class="cm">&lt;!-- pom.xml — C:\SparkBind\pom.xml --&gt;</span>
+<span class="kw">&lt;project&gt;</span>
+  <span class="cm">&lt;!-- WHO this project is --&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span><span class="st">com.hirwa</span><span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span><span class="st">SparkBind</span><span class="kw">&lt;/artifactId&gt;</span>
+  <span class="kw">&lt;version&gt;</span><span class="st">1.0-SNAPSHOT</span><span class="kw">&lt;/version&gt;</span>
+
+  <span class="cm">&lt;!-- SETTINGS: which Java version to use --&gt;</span>
+  <span class="kw">&lt;properties&gt;</span>
+    <span class="kw">&lt;maven.compiler.source&gt;</span><span class="nm">21</span><span class="kw">&lt;/maven.compiler.source&gt;</span>
+    <span class="kw">&lt;maven.compiler.target&gt;</span><span class="nm">21</span><span class="kw">&lt;/maven.compiler.target&gt;</span>
+  <span class="kw">&lt;/properties&gt;</span>
+
+  <span class="cm">&lt;!-- LIBRARIES to download (dependencies) --&gt;</span>
+  <span class="kw">&lt;dependencies&gt;</span>
+    <span class="kw">&lt;dependency&gt;</span>                  <span class="cm">&lt;!-- Apache Derby database driver --&gt;</span>
+      <span class="kw">&lt;groupId&gt;</span>org.apache.derby<span class="kw">&lt;/groupId&gt;</span>
+      <span class="kw">&lt;artifactId&gt;</span>derbyclient<span class="kw">&lt;/artifactId&gt;</span>
+      <span class="kw">&lt;version&gt;</span>10.17.1.0<span class="kw">&lt;/version&gt;</span>
+    <span class="kw">&lt;/dependency&gt;</span>
+    <span class="kw">&lt;dependency&gt;</span>                  <span class="cm">&lt;!-- Jackson: converts Java → JSON --&gt;</span>
+      <span class="kw">&lt;groupId&gt;</span>com.fasterxml.jackson.core<span class="kw">&lt;/groupId&gt;</span>
+      <span class="kw">&lt;artifactId&gt;</span>jackson-databind<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;/dependency&gt;</span>
+    <span class="kw">&lt;dependency&gt;</span>                  <span class="cm">&lt;!-- AWS SDK: upload to S3 --&gt;</span>
+      <span class="kw">&lt;groupId&gt;</span>software.amazon.awssdk<span class="kw">&lt;/groupId&gt;</span>
+      <span class="kw">&lt;artifactId&gt;</span>s3<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;/dependency&gt;</span>
+  <span class="kw">&lt;/dependencies&gt;</span>
+<span class="kw">&lt;/project&gt;</span></pre>
+
+    <h3>Maven's lifecycle — what happens when you run <code>mvn clean package</code></h3>
+    <table class="flow-table">
+      <tr><th>Phase</th><th>What Maven Does</th></tr>
+      <tr><td>clean</td><td>Deletes old <code>target/</code> folder (removes stale compiled files)</td></tr>
+      <tr><td>validate</td><td>Checks pom.xml is correct</td></tr>
+      <tr><td>compile</td><td>Reads all <code>.java</code> files → produces <code>.class</code> files in <code>target/classes/</code></td></tr>
+      <tr><td>test</td><td>Runs unit tests (we skip with <code>-DskipTests</code>)</td></tr>
+      <tr><td>package</td><td>Bundles everything into <code>target/SparkBind-1.0-SNAPSHOT.jar</code></td></tr>
+    </table>
+
+    <h3>Where Maven stores downloaded libraries</h3>
+    <div class="diagram">
+<span class="d-yellow">C:\Users\TRAMED\.m2\repository\</span>         <span class="d-gray">← Maven's local "library shelf"</span>
+<span class="d-green">├── com\fasterxml\jackson\</span>
+<span class="d-green">├── org\apache\derby\</span>
+<span class="d-green">└── software\amazon\awssdk\</span>
+<br>
+<span class="d-gray">First run: Maven downloads from internet (Maven Central).</span>
+<span class="d-gray">Next run: Maven reuses local cache (fast).</span>
+    </div>
+
+    <div class="tip">Maven Central is like the App Store for Java libraries. Every library in pom.xml is downloaded from there and stored locally in <code>~/.m2</code> so you don't download it again.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 3. COMPILATION -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="compile">
+    <h2><span class="num num-green">3</span> Compilation — .java → .class → .jar</h2>
+
+    <h3>Step 1: javac turns .java into .class (bytecode)</h3>
+    <div class="diagram">
+<span class="d-blue">Main.java</span>  <span class="d-gray">(text you can read)</span>
+<br>
+<span class="d-gray">  ↓  javac compiles</span>
+<br>
+<span class="d-green">Main.class</span> <span class="d-gray">(bytecode — not text, not machine code, something in between)</span>
+    </div>
+
+    <p>Bytecode is NOT the final machine code. It runs on any computer that has Java installed — Windows, Linux, Mac — without recompiling. That's the famous Java promise: <strong>"Write Once, Run Anywhere."</strong></p>
+
+    <h3>Step 2: maven-shade-plugin bundles everything into a JAR</h3>
+    <p>A JAR file (Java Archive) is just a ZIP file containing:</p>
+    <div class="diagram">
+<span class="d-yellow">SparkBind-1.0-SNAPSHOT.jar</span>  <span class="d-gray">(this IS a .zip — rename it to .zip to see inside)</span>
+<br>
+<span class="d-green">├── com/hirwa/Main.class</span>           <span class="d-gray">← your compiled code</span>
+<span class="d-green">├── com/hirwa/DerbyClient.class</span>
+<span class="d-green">├── com/hirwa/PharmacyDistributedJob.class</span>
+<span class="d-blue">├── org/apache/derby/ ...</span>            <span class="d-gray">← Derby library (bundled in)</span>
+<span class="d-blue">├── com/fasterxml/jackson/ ...</span>       <span class="d-gray">← Jackson library (bundled in)</span>
+<span class="d-purple">├── META-INF/MANIFEST.MF</span>            <span class="d-gray">← tells JVM which class is the entry point</span>
+<span class="d-purple">└── application.properties</span>          <span class="d-gray">← your config file</span>
+    </div>
+
+    <div class="warn">
+      <strong>Why we exclude *.SF / *.DSA / *.RSA files from the JAR:</strong><br>
+      Some libraries come with digital signatures. When you bundle multiple signed libraries into one JAR, the signatures conflict and Java refuses to run the app with the error "Invalid signature file digest". We fixed this in pom.xml by telling maven-shade-plugin to strip those signature files.
+    </div>
+
+    <h3>Running the JAR</h3>
+    <pre><span class="cm"># The JVM reads MANIFEST.MF → finds Main-Class → starts there</span>
+java -jar C:\SparkBind\target\SparkBind-1.0-SNAPSHOT.jar</pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 4. JVM -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="jvm">
+    <h2><span class="num num-amber">4</span> The JVM — Java Virtual Machine</h2>
+    <p>The JVM is the engine that actually runs your <code>.class</code> bytecode. It sits between your code and the operating system.</p>
+
+    <div class="diagram">
+<span class="d-blue">SparkBind.jar</span>
+<span class="d-gray">      ↓</span>
+<span class="d-yellow">┌─────────────────────────────┐</span>
+<span class="d-yellow">│          JVM                │</span>
+<span class="d-yellow">│  ┌─────────────────────┐   │</span>
+<span class="d-yellow">│  │  Class Loader       │   │</span>  <span class="d-gray">← reads .class files from the JAR</span>
+<span class="d-yellow">│  │  Bytecode Verifier  │   │</span>  <span class="d-gray">← checks code is safe</span>
+<span class="d-yellow">│  │  JIT Compiler       │   │</span>  <span class="d-gray">← converts bytecode → real CPU instructions</span>
+<span class="d-yellow">│  │  Garbage Collector  │   │</span>  <span class="d-gray">← frees unused memory automatically</span>
+<span class="d-yellow">│  └─────────────────────┘   │</span>
+<span class="d-yellow">└─────────────┬───────────────┘</span>
+              <span class="d-gray">↓</span>
+<span class="d-green">Windows / Linux / macOS (hardware)</span>
+    </div>
+
+    <h3>JAVA_HOME — why it matters</h3>
+    <p>When you run Maven or a Java program, the system needs to know <em>where Java is installed</em>. That's what <code>JAVA_HOME</code> is: a variable pointing to your JDK folder.</p>
+    <pre><span class="cm"># In PowerShell — tells Maven to use JDK 25</span>
+$env:JAVA_HOME = <span class="st">"C:\Program Files\Java\jdk-25.0.3"</span>
+$env:PATH = $env:JAVA_HOME + <span class="st">"\bin;"</span> + $env:PATH</pre>
+
+    <div class="cols">
+      <div class="arch-box arch-blue">
+        <div class="arch-title" style="color:#60a5fa">JDK (Java Development Kit)</div>
+        <div class="arch-body">The full toolkit: includes the compiler (javac), debugger, and the JVM. Needed by Maven to build your project.</div>
+      </div>
+      <div class="arch-box arch-green">
+        <div class="arch-title" style="color:#86efac">JRE (Java Runtime Environment)</div>
+        <div class="arch-body">Just the JVM — no compiler. Enough to <em>run</em> an already-built JAR, but not to build it.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 5. JDBC -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="jdbc">
+    <h2><span class="num num-red">5</span> JDBC — How Java Talks to Databases</h2>
+    <p>JDBC = <strong>Java Database Connectivity</strong>. It is a standard interface built into Java that lets your code talk to <em>any</em> database — Derby, MySQL, PostgreSQL, SQL Server — using the same code pattern.</p>
+
+    <div class="diagram">
+<span class="d-blue">Your Java Code</span>
+<span class="d-blue">  └── DriverManager.getConnection(url)</span>
+<span class="d-gray">         ↓</span>
+<span class="d-yellow">JDBC API (built into Java — java.sql.*)</span>
+<span class="d-gray">         ↓</span>
+<span class="d-green">Database Driver</span>  <span class="d-gray">← a JAR from your pom.xml that knows the specific DB protocol</span>
+<span class="d-green">  ├── derbyclient.jar   ← Derby protocol (DRDA over TCP port 1527)</span>
+<span class="d-green">  ├── postgresql.jar    ← PostgreSQL protocol</span>
+<span class="d-green">  └── mssql-jdbc.jar    ← SQL Server protocol (TDS over TCP port 1433)</span>
+<span class="d-gray">         ↓</span>
+<span class="d-red">The actual Database (file on disk or network server)</span>
+    </div>
+
+    <h3>JDBC URL — the database address</h3>
+    <p>The URL tells JDBC where the database is. It looks like a web address but for databases:</p>
+    <pre><span class="cm">// Pattern:</span>
+jdbc:<span class="st">protocol</span>://<span class="st">host</span>:<span class="st">port</span>/<span class="st">database-name</span>
+
+<span class="cm">// SparkBind connects to Ishyiga POS Derby database:</span>
+jdbc:derby://localhost:<span class="nm">1527</span>/SERVER1/TRAMEDNYARUGENGE
+<span class="cm">     ├──── ← driver/protocol      (Derby network client)</span>
+<span class="cm">     │      ├──────── ← host     (this machine)</span>
+<span class="cm">     │      │     ├── ← port     (Derby listens here)</span>
+<span class="cm">     │      │         └───────────────────── ← database folder name</span></pre>
+
+    <h3>The JDBC pattern — always the same 4 steps</h3>
+    <pre><span class="cm">// 1. Open connection</span>
+Connection conn = DriverManager.<span class="fn">getConnection</span>(<span class="st">"jdbc:derby://localhost:1527/SERVER1/TRAMEDNYARUGENGE"</span>);
+
+<span class="cm">// 2. Create a SQL statement</span>
+PreparedStatement stmt = conn.<span class="fn">prepareStatement</span>(<span class="st">"SELECT * FROM products WHERE active = 1"</span>);
+
+<span class="cm">// 3. Execute and get results</span>
+ResultSet rs = stmt.<span class="fn">executeQuery</span>();
+
+<span class="cm">// 4. Loop through rows</span>
+<span class="kw">while</span> (rs.<span class="fn">next</span>()) {
+    String name  = rs.<span class="fn">getString</span>(<span class="st">"product_name"</span>);
+    <span class="kw">int</span>    stock = rs.<span class="fn">getInt</span>(<span class="st">"quantity"</span>);
+    System.out.<span class="fn">println</span>(name + <span class="st">" — stock: "</span> + stock);
+}</pre>
+
+    <div class="info">JDBC does not care which database you use. You change the URL and the driver JAR — the code above stays identical whether you're talking to Derby, MySQL, or SQL Server.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 6. DERBY -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="derby">
+    <h2><span class="num">6</span> Apache Derby — The Local Database</h2>
+    <p>Apache Derby is a <strong>Java-only database</strong>. It comes bundled with Java itself and stores data as a <strong>folder on disk</strong> — not a single file.</p>
+
+    <div class="cols">
+      <div class="arch-box arch-blue">
+        <div class="arch-title" style="color:#60a5fa">Embedded Mode</div>
+        <div class="arch-body">
+          The database runs <em>inside</em> your app's JVM. No network, no port.<br><br>
+          URL: <code>jdbc:derby:path/to/folder</code><br><br>
+          Only one Java app can open it at a time. Ishyiga POS locks the main TRAMEDNYARUGENGE folder this way.
+        </div>
+      </div>
+      <div class="arch-box arch-green">
+        <div class="arch-title" style="color:#86efac">Network Mode</div>
+        <div class="arch-body">
+          A Derby <em>server</em> opens the database and listens on port 1527. Other apps connect over TCP.<br><br>
+          URL: <code>jdbc:derby://host:1527/dbname</code><br><br>
+          VSDC (EBM tax software) runs the Derby Network Server, making the database accessible over the network. SparkBind connects to this.
+        </div>
+      </div>
+    </div>
+
+    <h3>The database folder structure</h3>
+    <div class="diagram">
+<span class="d-yellow">E:\Ishyiga_tramed new Package\SERVER1\TRAMEDNYARUGENGE\</span>
+<br>
+<span class="d-green">├── seg0\</span>          <span class="d-gray">← actual table data (binary files)</span>
+<span class="d-green">├── log\</span>           <span class="d-gray">← transaction log (used for crash recovery)</span>
+<span class="d-green">├── tmp\</span>           <span class="d-gray">← temporary working space</span>
+<span class="d-blue">├── db.lck</span>         <span class="d-gray">← lock file (exists while DB is running)</span>
+<span class="d-blue">└── service.properties</span>  <span class="d-gray">← Derby internal config</span>
+<br>
+<span class="d-gray">⚠ This FOLDER is the database. Never move or rename files inside it manually.</span>
+    </div>
+
+    <h3>Port 1527 — the XSDB6 error story</h3>
+    <p>We encountered error <code>XSDB6</code> when SparkBind tried to open the database in <strong>embedded mode</strong> while VSDC already had it open in embedded mode. The fix was to connect in <strong>network mode</strong> to the copy VSDC serves:</p>
+    <table class="flow-table">
+      <tr><th>What</th><th>Who runs it</th><th>Mode</th></tr>
+      <tr><td>Port 1527 listener</td><td>VSDC (PID 9428, JDK 17)</td><td>Derby Network Server</td></tr>
+      <tr><td>TRAMEDNYARUGENGE (locked)</td><td>VSDC (embedded)</td><td>Embedded — SparkBind cannot open this</td></tr>
+      <tr><td>SERVER1/TRAMEDNYARUGENGE</td><td>VSDC (serves over network)</td><td>Network — SparkBind connects here ✓</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 7. HTTPCLIENT -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="httpclient">
+    <h2><span class="num num-purple">7</span> HttpClient — Sending Data to the Cloud</h2>
+    <p>Apache HttpClient (the <code>httpclient</code> dependency in pom.xml) lets your Java code send HTTP requests — the same protocol your browser uses.</p>
+
+    <p>SparkBind uses it to POST pharmacy data to the Hirwa central API.</p>
+
+    <div class="diagram">
+<span class="d-blue">SparkBind (this machine)</span>              <span class="d-green">Hirwa API Server (cloud)</span>
+<br>
+<span class="d-blue">┌─────────────────────────┐</span>              <span class="d-green">┌─────────────────────────┐</span>
+<span class="d-blue">│ 1. Build JSON payload   │</span>              <span class="d-green">│ 4. Receive data         │</span>
+<span class="d-blue">│ 2. Sign with HMAC key   │──── POST ────►│ 5. Validate signature   │</span>
+<span class="d-blue">│ 3. Send via HttpClient  │◄── 200 OK ────│ 6. Save to central DB   │</span>
+<span class="d-blue">└─────────────────────────┘</span>              <span class="d-green">└─────────────────────────┘</span>
+<br>
+<span class="d-gray">        Internet (port 443, HTTPS)</span>
+    </div>
+
+    <h3>Code pattern</h3>
+    <pre><span class="cm">// Build the HTTP POST request</span>
+HttpPost request = <span class="kw">new</span> <span class="cn">HttpPost</span>(<span class="st">"https://api.hirwa.rw/inventory/sync"</span>);
+request.<span class="fn">setHeader</span>(<span class="st">"Content-Type"</span>, <span class="st">"application/json"</span>);
+request.<span class="fn">setHeader</span>(<span class="st">"X-API-KEY"</span>, apiKey);
+request.<span class="fn">setHeader</span>(<span class="st">"X-HMAC-Signature"</span>, signature);   <span class="cm">// security proof</span>
+request.<span class="fn">setEntity</span>(<span class="kw">new</span> <span class="cn">StringEntity</span>(jsonBody));
+
+<span class="cm">// Execute and read response</span>
+CloseableHttpClient client = HttpClients.<span class="fn">createDefault</span>();
+HttpResponse response = client.<span class="fn">execute</span>(request);
+<span class="kw">int</span> statusCode = response.<span class="fn">getStatusLine</span>().<span class="fn">getStatusCode</span>();  <span class="cm">// 200 = OK</span></pre>
+
+    <h3>HMAC — the security signature</h3>
+    <p>HMAC (Hash-based Message Authentication Code) proves the request came from a trusted source. It works like a seal on an envelope:</p>
+    <table class="flow-table">
+      <tr><th>Step</th><th>What happens</th></tr>
+      <tr><td>1. Combine</td><td>Take the JSON payload + a secret key only you and Hirwa know</td></tr>
+      <tr><td>2. Hash</td><td>Run it through a math function (SHA-256) → get a unique fingerprint</td></tr>
+      <tr><td>3. Send</td><td>Include the fingerprint in the HTTP header</td></tr>
+      <tr><td>4. Verify</td><td>Hirwa server does the same math — if fingerprints match, the request is genuine</td></tr>
+    </table>
+    <div class="warn">The <code>secret.key</code> and <code>hmac.algorithm</code> fields in application.properties are still empty — we need these from the Hirwa team before SparkBind can successfully POST data.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 8. JACKSON -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="jackson">
+    <h2><span class="num num-green">8</span> Jackson — Turning Java Objects into JSON</h2>
+    <p>Databases return rows and columns. APIs expect JSON. <strong>Jackson</strong> is the library that converts between Java objects and JSON text.</p>
+
+    <div class="diagram">
+<span class="d-blue">Java Object (in memory)</span>                   <span class="d-green">JSON (text to send over HTTP)</span>
+<br>
+<span class="d-blue">Product {</span>                    Jackson          <span class="d-green">{</span>
+<span class="d-blue">  name = "Paracetamol"</span>    ──── serialize ──►  <span class="d-green">  "name": "Paracetamol",</span>
+<span class="d-blue">  stock = 150</span>                               <span class="d-green">  "stock": 150,</span>
+<span class="d-blue">  price = 500.0</span>           ◄── deserialize ──  <span class="d-green">  "price": 500.0</span>
+<span class="d-blue">}</span>                                             <span class="d-green">}</span>
+    </div>
+
+    <h3>How it works in code</h3>
+    <pre><span class="cm">// 1. Define a Java class to represent the data</span>
+<span class="kw">public class</span> <span class="cn">Product</span> {
+    <span class="kw">public</span> String name;
+    <span class="kw">public int</span>    stock;
+    <span class="kw">public double</span> price;
+}
+
+<span class="cm">// 2. Create the Jackson converter</span>
+ObjectMapper mapper = <span class="kw">new</span> <span class="cn">ObjectMapper</span>();
+
+<span class="cm">// 3. Java → JSON (to send to API)</span>
+Product p = <span class="kw">new</span> <span class="cn">Product</span>();
+p.name = <span class="st">"Paracetamol"</span>;  p.stock = <span class="nm">150</span>;
+String json = mapper.<span class="fn">writeValueAsString</span>(p);
+<span class="cm">// → {"name":"Paracetamol","stock":150,"price":0.0}</span>
+
+<span class="cm">// 4. JSON → Java (to read API responses)</span>
+Product loaded = mapper.<span class="fn">readValue</span>(json, <span class="cn">Product</span>.<span class="kw">class</span>);
+System.out.<span class="fn">println</span>(loaded.name);  <span class="cm">// Paracetamol</span></pre>
+
+    <div class="info">Jackson reads the Java class field names and automatically maps them to JSON keys. No manual parsing needed — it does the heavy lifting.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 9. AWS SDK -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="aws">
+    <h2><span class="num num-amber">9</span> AWS SDK — Uploading Backups to S3</h2>
+    <p>AWS S3 (Simple Storage Service) is Amazon's cloud file storage. SparkBind uses it to upload a ZIP of the Derby database folder every 12 hours as a cloud backup.</p>
+
+    <div class="diagram">
+<span class="d-blue">SparkBind (scheduled task)</span>
+<span class="d-blue">  1. ZIP the Derby folder → backup.zip</span>
+<span class="d-blue">  2. Use AWS SDK to authenticate with AWS</span>
+<span class="d-blue">  3. Upload backup.zip to S3 bucket</span>
+<span class="d-gray">            ↓  Internet (HTTPS)</span>
+<span class="d-yellow">Amazon AWS S3</span>
+<span class="d-yellow">  └── bucket: hirwa-pharmacy-backups/</span>
+<span class="d-yellow">        └── TRAMEDNYARUGENGE/</span>
+<span class="d-yellow">              └── 2026-06-24_02-00.zip</span>
+    </div>
+
+    <h3>How the AWS SDK works</h3>
+    <pre><span class="cm">// 1. Create S3 client (reads AWS credentials from env variables)</span>
+S3Client s3 = S3Client.<span class="fn">builder</span>()
+    .<span class="fn">region</span>(Region.<span class="fn">of</span>(<span class="st">"us-east-1"</span>))
+    .<span class="fn">build</span>();
+
+<span class="cm">// 2. Upload a file</span>
+PutObjectRequest req = PutObjectRequest.<span class="fn">builder</span>()
+    .<span class="fn">bucket</span>(<span class="st">"hirwa-pharmacy-backups"</span>)
+    .<span class="fn">key</span>(<span class="st">"TRAMEDNYARUGENGE/backup.zip"</span>)
+    .<span class="fn">build</span>();
+
+s3.<span class="fn">putObject</span>(req, Path.<span class="fn">of</span>(<span class="st">"C:/backups/backup.zip"</span>));</pre>
+
+    <p>The AWS SDK needs credentials (AWS Access Key ID + Secret) configured in <code>application.properties</code> or as environment variables (<code>AWS_ACCESS_KEY_ID</code>, <code>AWS_SECRET_ACCESS_KEY</code>).</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- 10. SPARKBIND FULL FLOW -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section" id="sparkbind">
+    <h2><span class="num num-red">10</span> SparkBind — How All These Fit Together</h2>
+    <p>SparkBind is an <strong>ETL agent</strong>: Extract data from Derby, Transform it to JSON, Load it to the Hirwa API. Here is the complete flow:</p>
+
+    <div class="diagram">
+<span class="d-gray">═══════════════════════════════════════════════════════════════════════</span>
+<span class="d-gray">                    SPARKBIND FULL ARCHITECTURE</span>
+<span class="d-gray">═══════════════════════════════════════════════════════════════════════</span>
+<br>
+<span class="d-blue">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="d-blue">│  Main.java (entry point — started by start.bat)</span>                <span class="d-blue">│</span>
+<span class="d-blue">│  • Reads application.properties</span>                                <span class="d-blue">│</span>
+<span class="d-blue">│  • Checks internet connection</span>                                  <span class="d-blue">│</span>
+<span class="d-blue">│  • Schedules recurring jobs (ScheduledExecutorService)</span>         <span class="d-blue">│</span>
+<span class="d-blue">└──────┬──────────────────────────────────┬───────────────────────┘</span>
+       <span class="d-gray">│ every 30 seconds                    │ every 12 hours</span>
+       <span class="d-gray">▼</span>                                    <span class="d-gray">▼</span>
+<span class="d-green">┌──────────────────────────┐</span>  <span class="d-orange">┌──────────────────────────────┐</span>
+<span class="d-green">│  STOCK SYNC              │</span>  <span class="d-orange">│  S3 BACKUP                   │</span>
+<span class="d-green">│                          │</span>  <span class="d-orange">│                              │</span>
+<span class="d-green">│ 1. JDBC → Derby          │</span>  <span class="d-orange">│ 1. ZIP Derby folder          │</span>
+<span class="d-green">│    SELECT * FROM stock   │</span>  <span class="d-orange">│ 2. AWS SDK → S3.putObject()  │</span>
+<span class="d-green">│                          │</span>  <span class="d-orange">│ 3. Cloud backup stored ✓     │</span>
+<span class="d-green">│ 2. Jackson → serialize   │</span>  <span class="d-orange">└──────────────────────────────┘</span>
+<span class="d-green">│    Java objects → JSON   │</span>
+<span class="d-green">│                          │</span>
+<span class="d-green">│ 3. HttpClient → POST     │</span>
+<span class="d-green">│    JSON to Hirwa API     │</span>
+<span class="d-green">│    with HMAC signature   │</span>
+<span class="d-green">└──────────────────────────┘</span>
+<br>
+<span class="d-gray">══════════ DATA SOURCES (input) ══════════</span>
+<br>
+<span class="d-yellow">Derby Network Server (port 1527)</span>  <span class="d-gray">← run by VSDC (EBM tax software)</span>
+<span class="d-yellow">  └── SERVER1/TRAMEDNYARUGENGE</span>   <span class="d-gray">← SparkBind connects here via JDBC</span>
+<span class="d-yellow">       ├── products table</span>
+<span class="d-yellow">       ├── clients table  (patients)</span>
+<span class="d-yellow">       └── invoices table (sales)</span>
+<br>
+<span class="d-gray">══════════ DATA DESTINATIONS (output) ══════════</span>
+<br>
+<span class="d-purple">Hirwa API server (HTTPS)</span>  <span class="d-gray">← receives stock / patient / sales JSON</span>
+<span class="d-orange">AWS S3 bucket</span>             <span class="d-gray">← receives ZIP backup every 12 hours</span>
+    </div>
+
+    <h3>Library responsibility map</h3>
+    <table class="flow-table">
+      <tr><th>Library in pom.xml</th><th>What SparkBind uses it for</th></tr>
+      <tr>
+        <td><span class="tag tag-blue">derbyclient</span></td>
+        <td>Connects to the Ishyiga POS database on port 1527. The JDBC driver that speaks the Derby DRDA protocol.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">httpclient</span></td>
+        <td>Sends the POST request to the Hirwa cloud API with the JSON body and HMAC authentication header.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">jackson-databind</span></td>
+        <td>Converts Java product/patient/invoice objects into JSON text before sending them to the API.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">aws s3 sdk</span></td>
+        <td>Uploads the ZIP backup of the Derby folder to Amazon S3 every 12 hours.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-red">log4j / slf4j</span></td>
+        <td>Writes timestamped log messages to the <code>logs/</code> folder so you can see what SparkBind is doing.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">gson</span></td>
+        <td>Alternative JSON converter (Google's version of Jackson) used in some parts of SparkBind.</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">mssql-jdbc</span></td>
+        <td>Connects to SQL Server for GRA EBM (tax) data sync — inactive unless <code>graebm.enabled=true</code>.</td>
+      </tr>
+    </table>
+
+    <h3>The application.properties file — runtime configuration</h3>
+    <p>Instead of hardcoding values inside the Java classes, SparkBind reads them from a properties file at startup. This lets you change settings without recompiling:</p>
+    <pre><span class="cm"># C:\SparkBind\src\main\resources\application.properties</span>
+<br>
+<span class="cm"># ── JDBC connection to Derby database ──</span>
+<span class="kw">db.url</span>=<span class="st">jdbc:derby://localhost:1527/SERVER1/TRAMEDNYARUGENGE</span>
+<span class="kw">db.path</span>=<span class="st">E:\Ishyiga_tramed new Package\TRAMEDNYARUGENGE</span>
+<br>
+<span class="cm"># ── Hirwa API credentials (still needed from Hirwa team) ──</span>
+<span class="kw">api.base.url</span>=<span class="st">                        </span><span class="cm"># ← fill in from Hirwa</span>
+<span class="kw">api.key</span>=<span class="st">                            </span><span class="cm"># ← fill in from Hirwa</span>
+<span class="kw">secret.key</span>=<span class="st">                         </span><span class="cm"># ← fill in from Hirwa (for HMAC)</span>
+<span class="kw">hmac.algorithm</span>=<span class="st">                     </span><span class="cm"># ← fill in from Hirwa (e.g. HmacSHA256)</span>
+<br>
+<span class="cm"># ── AWS S3 backup settings ──</span>
+<span class="kw">aws.s3.bucket.name</span>=<span class="st">                </span><span class="cm"># ← fill in from Hirwa</span>
+<span class="kw">aws.s3.region</span>=<span class="st">us-east-1</span>
+<br>
+<span class="cm"># ── GRA EBM tax sync (disabled for now) ──</span>
+<span class="kw">graebm.enabled</span>=<span class="st">false</span>
+<span class="kw">graebm.sdc.id</span>=<span class="st">SDC008000392</span></pre>
+
+    <h3>Full build and run commands</h3>
+    <pre><span class="cm"># Step 1 — Set Java version for this terminal session</span>
+$env:JAVA_HOME = <span class="st">"C:\Program Files\Java\jdk-25.0.3"</span>
+
+<span class="cm"># Step 2 — Go to the project folder</span>
+<span class="kw">cd</span> C:\SparkBind
+
+<span class="cm"># Step 3 — Build (compile + package into JAR)</span>
+& <span class="st">"C:\Users\TRAMED\maven\apache-maven-3.9.6\bin\mvn.cmd"</span> clean package -DskipTests
+
+<span class="cm"># Step 4 — Run (once built, use start.bat or run directly)</span>
+java -jar target\SparkBind-1.0-SNAPSHOT.jar</pre>
+
+    <div class="tip">
+      <strong>What to do next:</strong> SparkBind already connects to Derby successfully. The only remaining step is to get the Hirwa API credentials (<code>api.base.url</code>, <code>api.key</code>, <code>secret.key</code>, <code>hmac.algorithm</code>) and fill them into <code>application.properties</code>. After that, rebuild with <code>mvn clean package</code> and test with <code>start.bat</code>.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SUMMARY DIAGRAM -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <h2><span class="num num-amber">★</span> Complete Java Concept Map</h2>
+    <div class="diagram">
+<span class="d-gray">┌─────────────────────────────────────────────────────────────────────────┐</span>
+<span class="d-gray">│                    JAVA PROJECT LIFE CYCLE                              │</span>
+<span class="d-gray">└─────────────────────────────────────────────────────────────────────────┘</span>
+<br>
+<span class="d-blue">YOU WRITE</span>                    <span class="d-blue">Main.java  DerbyClient.java  HirwaClient.java</span>
+                                    <span class="d-gray">↓ (plain text files)</span>
+<span class="d-green">MAVEN READS</span>                  <span class="d-green">pom.xml — downloads libraries from Maven Central</span>
+                                    <span class="d-gray">↓</span>
+<span class="d-green">JAVAC COMPILES</span>               <span class="d-green">.java → .class (bytecode)</span>
+                                    <span class="d-gray">↓</span>
+<span class="d-green">MAVEN PACKAGES</span>               <span class="d-green">.class + libraries + config → SparkBind.jar</span>
+                                    <span class="d-gray">↓</span>
+<span class="d-yellow">JVM LOADS</span>                    <span class="d-yellow">java -jar SparkBind.jar  →  JVM reads MANIFEST.MF</span>
+                                    <span class="d-gray">↓</span>
+<span class="d-yellow">JVM RUNS</span>                     <span class="d-yellow">Main.class starts → reads application.properties</span>
+                                    <span class="d-gray">↓</span>
+      <span class="d-gray">┌───────────────────────────────────────────────────┐</span>
+      <span class="d-red">JDBC</span>       <span class="d-gray">→</span> connect to Derby port 1527 via derbyclient.jar
+      <span class="d-orange">Jackson</span>    <span class="d-gray">→</span> Derby rows → Java objects → JSON string
+      <span class="d-purple">HttpClient</span> <span class="d-gray">→</span> POST JSON to Hirwa API (with HMAC signature)
+      <span class="d-cyan">AWS SDK</span>    <span class="d-gray">→</span> ZIP Derby folder → upload to S3 bucket
+      <span class="d-gray">└───────────────────────────────────────────────────┘</span>
+    </div>
+  </div>
+
+  <!-- YOUTUBE SEARCH PROMPTS -->
+  <div class="section">
+    <h2><span class="num">?</span> What to Search on YouTube to Learn More</h2>
+    <table class="flow-table">
+      <tr><th>Topic</th><th>YouTube search term</th></tr>
+      <tr><td>Java basics</td><td><code>Java tutorial for beginners 2024</code> — look for Bro Code or Mosh Hamedani</td></tr>
+      <tr><td>Maven</td><td><code>Maven tutorial Java beginner</code></td></tr>
+      <tr><td>JDBC database</td><td><code>JDBC Java MySQL tutorial</code> (same concept as Derby)</td></tr>
+      <tr><td>JSON in Java</td><td><code>Jackson JSON Java tutorial</code></td></tr>
+      <tr><td>REST API calls</td><td><code>Java HttpClient POST request tutorial</code></td></tr>
+      <tr><td>AWS S3</td><td><code>AWS S3 Java SDK upload file tutorial</code></td></tr>
+      <tr><td>What is a JAR</td><td><code>Java JAR file explained</code></td></tr>
+      <tr><td>JVM explained</td><td><code>What is JVM JRE JDK difference</code></td></tr>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <p>SparkBind Architecture Notes · Ishyiga Pharmacy Network · TRAMED machine · June 2026</p>
+</footer>
+
+</body>
+</html>
