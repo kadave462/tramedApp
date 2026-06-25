@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SparkBind — Requirements &amp; Pending Items</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; color: #333; }
+
+    header { background: linear-gradient(135deg, #1a56db, #7c3aed); color: white; padding: 36px 40px; }
+    header h1 { font-size: 26px; font-weight: 700; }
+    header p  { margin-top: 8px; font-size: 14px; opacity: 0.88; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 12px; font-size: 12px; margin: 8px 4px 0; }
+
+    main { max-width: 900px; margin: 36px auto; padding: 0 20px 80px; }
+
+    .section { background: white; border-radius: 10px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .section h2 { font-size: 17px; color: #1a56db; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .num  { background: #1a56db; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .num-green  { background: #059669; }
+    .num-orange { background: #d97706; }
+    .num-red    { background: #dc2626; }
+    .num-purple { background: #7c3aed; }
+
+    p  { font-size: 14px; line-height: 1.7; margin-bottom: 10px; color: #444; }
+    ul { padding-left: 20px; margin-bottom: 10px; }
+    li { font-size: 14px; line-height: 1.9; color: #444; }
+
+    code { background: #f1f3f4; border-radius: 4px; padding: 2px 7px; font-family: Consolas, monospace; font-size: 13px; color: #c0392b; }
+    pre  { background: #1e1e1e; color: #d4d4d4; border-radius: 8px; padding: 14px 18px; font-size: 13px; font-family: Consolas, monospace; overflow-x: auto; margin: 10px 0; line-height: 1.6; }
+    pre .cm  { color: #6a9955; }
+    pre .kw  { color: #9cdcfe; }
+    pre .val { color: #ce9178; }
+
+    /* Status table */
+    .req-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .req-table th { background: #f1f3f4; text-align: left; padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; border-bottom: 2px solid #e0e0e0; }
+    .req-table td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .req-table td:first-child { font-family: Consolas, monospace; color: #c0392b; font-size: 13px; white-space: nowrap; }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table tr:hover td { background: #fafafa; }
+
+    /* Badge pills */
+    .pill { display: inline-block; border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill-red    { background: #fde8e8; color: #dc2626; }
+    .pill-orange { background: #fef3c7; color: #d97706; }
+    .pill-green  { background: #d1fae5; color: #059669; }
+    .pill-blue   { background: #dbeafe; color: #1a56db; }
+    .pill-purple { background: #ede9fe; color: #7c3aed; }
+
+    /* Info / warn / tip boxes */
+    .info  { background: #eff6ff; border-left: 4px solid #1a56db; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #1e40af; margin: 12px 0; }
+    .warn  { background: #fffbeb; border-left: 4px solid #d97706; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #92400e; margin: 12px 0; }
+    .ok    { background: #ecfdf5; border-left: 4px solid #059669; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #065f46; margin: 12px 0; }
+    .bug   { background: #fff1f2; border-left: 4px solid #dc2626; border-radius: 4px; padding: 12px 16px; font-size: 13px; color: #9f1239; margin: 12px 0; }
+
+    /* Progress checklist */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .checklist li:last-child { border-bottom: none; }
+    .chk { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+    .chk-done    { background: #059669; color: white; }
+    .chk-pending { background: #d97706; color: white; }
+    .chk-blocked { background: #dc2626; color: white; }
+    .chk-fix     { background: #7c3aed; color: white; }
+
+    footer { text-align: center; font-size: 12px; color: #999; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>SparkBind — Requirements &amp; Pending Items</h1>
+  <p>Everything needed to make SparkBind fully operational on TRAMED machine</p>
+  <span class="badge">Machine: TRAMED · Nyarugenge</span>
+  <span class="badge">Noted: June 24, 2026</span>
+</header>
+
+<main>
+
+  <!-- ── OVERALL STATUS ── -->
+  <div class="section">
+    <h2><span class="num num-green">✓</span> Current Status — What Is Already Working</h2>
+    <ul class="checklist">
+      <li><span class="chk chk-done">✓</span><span><strong>Derby database connected</strong> — SparkBind successfully reads from <code>jdbc:derby://localhost:1527/SERVER1/TRAMEDNYARUGENGE</code> via the VSDC network server on port 1527.</span></li>
+      <li><span class="chk chk-done">✓</span><span><strong>Internet connectivity</strong> — Machine has internet access (confirmed via Main.java run).</span></li>
+      <li><span class="chk chk-done">✓</span><span><strong>JAR built successfully</strong> — <code>C:\SparkBind\target\SparkBind-1.0-SNAPSHOT.jar</code> compiles and starts.</span></li>
+      <li><span class="chk chk-done">✓</span><span><strong>S3 backup runs</strong> — SparkBind zips the Derby database folder and saves it to <code>E:\Ishyiga_tramed new Package\bcp\</code> every 12 hours.</span></li>
+      <li><span class="chk chk-done">✓</span><span><strong>Java 25 + Maven 3.9.6</strong> — Both installed and working. Build command confirmed working.</span></li>
+    </ul>
+  </div>
+
+  <!-- ── CREDENTIALS NEEDED ── -->
+  <div class="section">
+    <h2><span class="num num-red">!</span> Credentials Needed — Ask the Hirwa Team</h2>
+    <p>SparkBind cannot send any data to the central server without these. Contact whoever manages the Hirwa API (same team that connected Vine Pharmacy branches).</p>
+
+    <table class="req-table">
+      <tr>
+        <th>Field (in application.properties)</th>
+        <th>What to ask for</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>api.base.url</td>
+        <td>The Hirwa central API URL — e.g. <code>https://api.hirwa.rw</code>. SparkBind uses this as both the internet check and the base for all API calls.</td>
+        <td><span class="pill pill-red">Missing</span></td>
+      </tr>
+      <tr>
+        <td>api.key</td>
+        <td>Your pharmacy's secret API key. Sent as <code>X-API-KEY</code> header on every request. Unique per pharmacy.</td>
+        <td><span class="pill pill-red">Missing</span></td>
+      </tr>
+      <tr>
+        <td>api.pharmacy.id</td>
+        <td>Your branch ID in the Hirwa system — e.g. <code>TRAMEDNYARUGENGE</code> or a code they assign. Sent as <code>X-Pharmacy-ID</code> header. <strong>This field does not even exist in the current properties file — must be added.</strong></td>
+        <td><span class="pill pill-red">Missing + must add field</span></td>
+      </tr>
+      <tr>
+        <td>inventory.api.url</td>
+        <td>Endpoint URL for live stock/inventory sync — e.g. <code>https://api.hirwa.rw/inventory/sync</code>.</td>
+        <td><span class="pill pill-red">Missing</span></td>
+      </tr>
+      <tr>
+        <td>inventory.api.key</td>
+        <td>API key specifically for the inventory endpoint (may be same as api.key or different).</td>
+        <td><span class="pill pill-red">Missing</span></td>
+      </tr>
+      <tr>
+        <td>secret.key</td>
+        <td>Key used <em>locally</em> to fingerprint each stock record (prevents resending the same row twice). Can be any string — does not need to come from Hirwa. Suggest: <code>TRAMEDNYARUGENGE-2026</code></td>
+        <td><span class="pill pill-orange">Can self-set</span></td>
+      </tr>
+      <tr>
+        <td>hmac.algorithm</td>
+        <td>Algorithm for the above. Standard value is <code>HmacSHA256</code> — set this yourself without asking.</td>
+        <td><span class="pill pill-orange">Can self-set</span></td>
+      </tr>
+      <tr>
+        <td>aws.s3.bucket.name</td>
+        <td>AWS S3 bucket name for cloud database backups. Ask Hirwa or skip for now — local backups already work.</td>
+        <td><span class="pill pill-blue">Optional</span></td>
+      </tr>
+      <tr>
+        <td>aws.s3.folder.name</td>
+        <td>Folder inside the S3 bucket for this pharmacy's backups.</td>
+        <td><span class="pill pill-blue">Optional</span></td>
+      </tr>
+    </table>
+
+    <div class="warn">
+      <strong>Note:</strong> Vine Pharmacy (kh, hq, kf, kacyiru branches) is already connected to Hirwa. The team that set up Vine is the same team you need to contact to register TRAMED as a new branch.
+    </div>
+  </div>
+
+  <!-- ── MISSING FIELD ── -->
+  <div class="section">
+    <h2><span class="num num-orange">!</span> Missing Field in application.properties</h2>
+    <p><code>api.pharmacy.id</code> is read by the code (<code>PharmacyDistributedJob.java</code> line 63) but is <strong>not present</strong> in the current <code>application.properties</code> file. It must be added manually when you receive the value from the Hirwa team.</p>
+
+    <p>Open <code>C:\SparkBind\src\main\resources\application.properties</code> and add this line under <code>api.key</code>:</p>
+    <pre><span class="kw">api.key</span>=<span class="val">your-api-key-here</span>
+<span class="kw">api.pharmacy.id</span>=<span class="val">YOUR-BRANCH-ID-FROM-HIRWA</span>   <span class="cm"># ← add this line</span></pre>
+  </div>
+
+  <!-- ── CODE BUG ── -->
+  <div class="section">
+    <h2><span class="num num-red">✗</span> Known Code Bug — To Fix When Ready</h2>
+    <div class="bug">
+      <strong>Bug location:</strong> <code>C:\SparkBind\src\main\java\com\hirwa\PharmacyDistributedJob.java</code> — lines 113–120<br>
+      <strong>Impact:</strong> <code>start.bat</code> will crash on the database connection even after credentials are added.
+    </div>
+
+    <p><strong>What the bug is:</strong></p>
+    <p><code>PharmacyDistributedJob</code> (used by <code>start.bat</code>) opens the Derby database in <strong>embedded mode</strong> using the folder path (<code>db.path</code>). But VSDC already holds that database locked in embedded mode — so SparkBind gets error <code>XSDB6: Another instance of Derby already has the database locked</code>.</p>
+
+    <p>The fix is one line — use <code>db.url</code> (network mode, already working) instead of <code>db.path</code> (embedded mode, blocked):</p>
+
+    <pre><span class="cm">// CURRENT CODE (broken — embedded mode, crashes with XSDB6):</span>
+<span class="kw">private static</span> DerbyClient createDerbyClient(String dbPath) {
+    <span class="kw">return new</span> DerbyClient() {
+        <span class="kw">public</span> Connection connect() <span class="kw">throws</span> SQLException {
+            <span class="kw">return</span> DriverManager.getConnection(<span class="val">"jdbc:derby:"</span> + dbPath);
+        }
+    };
+}
+
+<span class="cm">// FIXED CODE (uses network mode, same as what already works):</span>
+<span class="kw">private static</span> DerbyClient createDerbyClient(String dbPath) {
+    <span class="kw">return new</span> DerbyClient() {
+        <span class="kw">public</span> Connection connect() <span class="kw">throws</span> SQLException {
+            <span class="kw">return</span> DriverManager.getConnection(AppConfig.getProperty(<span class="val">"db.url"</span>));
+        }
+    };
+}</pre>
+
+    <div class="info">After applying this fix, rebuild with <code>mvn clean package -DskipTests</code> and the JAR will use the network connection that already works.</div>
+  </div>
+
+  <!-- ── TWO SYNC MODES ── -->
+  <div class="section">
+    <h2><span class="num num-purple">i</span> Two Sync Modes — Know the Difference</h2>
+    <p>SparkBind has two separate programs that sync different data:</p>
+
+    <table class="req-table">
+      <tr>
+        <th>How to run</th>
+        <th>Program</th>
+        <th>What data it syncs</th>
+        <th>Credentials it needs</th>
+      </tr>
+      <tr>
+        <td><code>java -jar SparkBind.jar</code></td>
+        <td><code>Main.java</code></td>
+        <td>Live stock levels (every 30 seconds)</td>
+        <td><code>inventory.api.url</code>, <code>inventory.api.key</code>, <code>secret.key</code>, <code>hmac.algorithm</code></td>
+      </tr>
+      <tr>
+        <td><code>start.bat</code></td>
+        <td><code>PharmacyDistributedJob.java</code></td>
+        <td>Products, Patients, Sales invoices (every 1 hour)</td>
+        <td><code>api.base.url</code>, <code>api.key</code>, <code>api.pharmacy.id</code></td>
+      </tr>
+    </table>
+
+    <div class="info">Both need to run together for a full sync. <code>Main.java</code> handles real-time stock. <code>PharmacyDistributedJob</code> handles the daily data (medications, patients, sales).</div>
+  </div>
+
+  <!-- ── STEPS WHEN READY ── -->
+  <div class="section">
+    <h2><span class="num">→</span> Steps to Complete Once Credentials Are Received</h2>
+    <ul class="checklist">
+      <li><span class="chk chk-blocked">1</span><span>Receive credentials from Hirwa team: <code>api.base.url</code>, <code>api.key</code>, <code>api.pharmacy.id</code>, <code>inventory.api.url</code>, <code>inventory.api.key</code></span></li>
+      <li><span class="chk chk-blocked">2</span><span>Open <code>C:\SparkBind\src\main\resources\application.properties</code> and fill in all empty fields. Also add the missing <code>api.pharmacy.id=</code> line. Set <code>secret.key=TRAMEDNYARUGENGE-2026</code> and <code>hmac.algorithm=HmacSHA256</code>.</span></li>
+      <li><span class="chk chk-fix">3</span><span>Apply the one-line fix to <code>PharmacyDistributedJob.java</code> (embedded → network Derby connection). See bug section above.</span></li>
+      <li><span class="chk chk-blocked">4</span><span>Rebuild: open PowerShell and run:<br><code>$env:JAVA_HOME = "C:\Program Files\Java\jdk-25.0.3"</code><br><code>cd C:\SparkBind</code><br><code>& "C:\Users\TRAMED\maven\apache-maven-3.9.6\bin\mvn.cmd" clean package -DskipTests</code></span></li>
+      <li><span class="chk chk-blocked">5</span><span>Test manually: run <code>C:\SparkBind\start.bat</code> and watch for <code>Sync completed successfully.</code></span></li>
+      <li><span class="chk chk-blocked">6</span><span>Install as auto-start service: run PowerShell <strong>as Administrator</strong> and execute <code>C:\SparkBind\setup.bat</code> — this registers SparkBind to start automatically every time the computer boots.</span></li>
+    </ul>
+  </div>
+
+  <!-- ── CONTEXT ── -->
+  <div class="section">
+    <h2><span class="num num-purple">i</span> What Hirwa Is — The Big Picture</h2>
+    <p>Hirwa is a <strong>central data warehouse</strong> built to collect sales, inventory, and patient data from ~500 Ishyiga pharmacies across Rwanda. Each pharmacy runs SparkBind locally — it reads from the local Ishyiga POS Derby database and pushes data to the central Hirwa API (Spring Boot + PostgreSQL in the cloud).</p>
+    <p>The central database uses a <strong>Star Schema</strong> (Kimball design) with dimension tables (<code>dim_product</code>, <code>dim_client</code>, <code>dim_branch</code>) and fact tables (<code>fact_sales</code>, <code>fact_inventory</code>). This allows cross-pharmacy reports like:</p>
+    <ul>
+      <li>Top selling medications across all branches this month</li>
+      <li>Stock expiring in Pharmacy A but in high demand at Pharmacy B → trigger internal transfer</li>
+      <li>A patient's medication history even if they visit different pharmacies</li>
+      <li>Price consistency checks across 500 locations</li>
+    </ul>
+    <div class="ok"><strong>Vine Pharmacy</strong> is already connected (4 branches: kh, hq, kf, kacyiru). TRAMED Nyarugenge is the next branch to be onboarded.</div>
+  </div>
+
+</main>
+
+<footer>
+  <p>SparkBind Requirements · TRAMED Nyarugenge · June 24, 2026</p>
+</footer>
+
+</body>
+</html>
